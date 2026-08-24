@@ -1,0 +1,24 @@
+/* COLOR PALETTE */
+:root {
+  --primary: #6ea8ff;
+  --light-primary: #a8c7ff;
+
+  --secondary: #8aa4c8;
+  --light-secondary: #b8c9df;
+
+  --accent: #5dd6ff;
+
+  --background: #05050a;
+  --surface: #15151a;
+  --elevated-surface: #1c2130;
+
+  --border: #272d3a;
+  --divider: #202532;
+
+  --inner-shadow: #00000040;
+  --outer-shadow: #00000066;
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+}

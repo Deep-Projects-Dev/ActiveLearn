@@ -1,0 +1,23 @@
+.glow {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -30%;
+    z-index: -1;
+
+    background: radial-gradient(
+      circle,
+      var(--primary) 0%,
+      transparent 60%
+    );
+
+    opacity: 0.12;
+    filter: blur(4rem);
+  }
+}
+
+.circle {
+  border-radius: 50%;
+}
