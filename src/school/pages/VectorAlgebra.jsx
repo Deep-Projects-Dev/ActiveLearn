@@ -1,1129 +1,1380 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./VectorAlgebra.css";
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
 const MODES = [
-  ["basics", "Basics", "Vectors, scalars & position vectors"],
-  ["types", "Types", "Zero, unit, equal & collinear"],
-  ["addition", "Addition", "Triangle & parallelogram laws"],
-  ["scalar", "Scalar", "Multiplication & components"],
-  ["section", "Section", "Position & section formula"],
-  ["dot", "Dot product", "Projection & angle"],
-  ["cross", "Cross product", "Perpendicular vector & area"],
+  ["basics", "Basics", "Magnitude, direction & position vectors"],
+  ["types", "Types", "Zero, unit, equal, negative & collinear"],
+  ["addition", "Addition", "Triangle and parallelogram laws"],
+  ["scalar", "Scalar", "Scalar multiplication & components"],
+  ["section", "Section", "Position vectors & section formula"],
+  ["dot", "Dot", "Angle, projection & scalar product"],
+  ["cross", "Cross", "Perpendicular vector & area"],
 ];
 
-const MODE_INDEX = Object.fromEntries(MODES.map(([id], index) => [id, index]));
+const INITIAL = {
+  basics: { x: 3, y: 2, z: 1 },
+  types: { ax: 3, ay: 2, bx: 6, by: 4 },
+  addition: { ax: 3, ay: 1, bx: 1, by: 2 },
+  scalar: { ax: 3, ay: 1, lambda: 1.5 },
+  section: { px: -4, py: 1, qx: 4, qy: 3, t: 0.5 },
+  dot: { ax: 4, ay: 1, bx: 2, by: 3 },
+  cross: { ax: 3, ay: 1, az: 2, bx: 1, by: 3, bz: 1 },
+};
+
+const CHALLENGES = {
+  basics: [
+    {
+      text: "Put A in quadrant II.",
+      done: (v) => v.x < 0 && v.y > 0,
+    },
+    {
+      text: "Make |A| = 3 units.",
+      done: (v) => Math.abs(Math.hypot(v.x, v.y, v.z) - 3) < 0.08,
+    },
+    {
+      text: "Make A lie on the z-axis.",
+      done: (v) => Math.abs(v.x) < 0.08 && Math.abs(v.y) < 0.08,
+    },
+  ],
+  types: [
+    {
+      text: "Make A and B equal.",
+      done: (v) => Math.hypot(v.ax - v.bx, v.ay - v.by) < 0.12,
+    },
+    {
+      text: "Make B the negative of A.",
+      done: (v) => Math.hypot(v.ax + v.bx, v.ay + v.by) < 0.12,
+    },
+    {
+      text: "Make B a unit vector.",
+      done: (v) => Math.abs(Math.hypot(v.bx, v.by) - 1) < 0.05,
+    },
+  ],
+  addition: [
+    {
+      text: "Make the resultant horizontal.",
+      done: (v) => Math.abs(v.ay + v.by) < 0.08,
+    },
+    {
+      text: "Make A and B perpendicular.",
+      done: (v) => Math.abs(v.ax * v.bx + v.ay * v.by) < 0.12,
+    },
+    {
+      text: "Make R = (1, 0).",
+      done: (v) => Math.hypot(v.ax + v.bx - 1, v.ay + v.by) < 0.12,
+    },
+  ],
+  scalar: [
+    {
+      text: "Make λ = 0.",
+      done: (v) => Math.abs(v.lambda) < 0.08,
+    },
+    {
+      text: "Reverse A without changing its length.",
+      done: (v) => Math.abs(v.lambda + 1) < 0.08,
+    },
+    {
+      text: "Make |λ| = 2.",
+      done: (v) => Math.abs(Math.abs(v.lambda) - 2) < 0.08,
+    },
+  ],
+  section: [
+    {
+      text: "Put R at the midpoint of PQ.",
+      done: (v) => Math.abs(v.t - 0.5) < 0.04,
+    },
+    {
+      text: "Make PR : RQ = 1 : 3.",
+      done: (v) => Math.abs(v.t - 0.25) < 0.04,
+    },
+    {
+      text: "Move P and Q, then keep R at the midpoint.",
+      done: (v) => Math.abs(v.t - 0.5) < 0.04 && Math.hypot(v.qx - v.px, v.qy - v.py) > 2,
+    },
+  ],
+  dot: [
+    {
+      text: "Make A · B = 0.",
+      done: (v) => Math.abs(v.dot) < 0.12,
+    },
+    {
+      text: "Make A · B negative.",
+      done: (v) => v.dot < -1,
+    },
+    {
+      text: "Make B point in exactly the same direction as A.",
+      done: (v) => v.cross2 < 0.08 && v.dot > 1,
+    },
+  ],
+  cross: [
+    {
+      text: "Make A × B = 0 by making A and B parallel.",
+      done: (v) => v.crossMagnitude < 0.12,
+    },
+    {
+      text: "Make A perpendicular to B.",
+      done: (v) => Math.abs(v.dot) < 0.12,
+    },
+    {
+      text: "Make the parallelogram area larger than 8.",
+      done: (v) => v.crossMagnitude > 8,
+    },
+  ],
+};
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const fmt = (value, digits = 2) => {
+  if (Math.abs(value) < 0.005) return "0";
+  return Number(value.toFixed(digits)).toString();
+};
+const deg = (radians) => (radians * 180) / Math.PI;
+
+function magnitude2(x, y) {
+  return Math.hypot(x, y);
+}
+
+function cross2(ax, ay, bx, by) {
+  return ax * by - ay * bx;
+}
+
+function dot2(ax, ay, bx, by) {
+  return ax * bx + ay * by;
+}
+
+function magnitude3(x, y, z) {
+  return Math.hypot(x, y, z);
+}
+
+function dot3(a, b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function cross3(a, b) {
+  return {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  };
+}
+
+function angle2(ax, ay, bx, by) {
+  const ma = magnitude2(ax, ay);
+  const mb = magnitude2(bx, by);
+  if (!ma || !mb) return 0;
+  return Math.acos(clamp(dot2(ax, ay, bx, by) / (ma * mb), -1, 1));
+}
+
+function cloneInitial() {
+  return Object.fromEntries(Object.entries(INITIAL).map(([key, value]) => [key, { ...value }]));
+}
 
 export default function VectorAlgebra() {
+  const canvasRef = useRef(null);
+  const engineRef = useRef(null);
   const [mode, setMode] = useState("addition");
-  const [showGuide, setShowGuide] = useState(true);
-  const [showFormula, setShowFormula] = useState(false);
-  const [viewResetToken, setViewResetToken] = useState(0);
-  const [values, setValues] = useState({
-    ax: 3,
-    ay: 2,
-    bx: 2,
-    by: 1,
-    lambda: 1.5,
-    ratio: 2,
-    px: -4,
-    py: 1.5,
-    qx: 4,
-    qy: 4,
-  });
-
-  const modeTitle = MODES.find(([id]) => id === mode)?.[1] ?? "Vector Algebra";
-  const modeSubtitle = MODES.find(([id]) => id === mode)?.[2] ?? "";
-
-  const update = (key, next) => setValues((prev) => ({ ...prev, [key]: next }));
-
-  const nextMode = () => {
-    const index = MODE_INDEX[mode];
-    setMode(MODES[(index + 1) % MODES.length][0]);
-    setShowFormula(false);
-  };
-
-  const previousMode = () => {
-    const index = MODE_INDEX[mode];
-    setMode(MODES[(index - 1 + MODES.length) % MODES.length][0]);
-    setShowFormula(false);
-  };
-
-  const resetLesson = () => {
-    setValues({
-      ax: 3,
-      ay: 2,
-      bx: 2,
-      by: 1,
-      lambda: 1.5,
-      ratio: 2,
-      px: -4,
-      py: 1.5,
-      qx: 4,
-      qy: 4,
-    });
-    setMode("addition");
-    setShowFormula(false);
-    setViewResetToken((token) => token + 1);
-  };
+  const [ui, setUi] = useState(() => ({
+    mode: "addition",
+    challengeIndex: 0,
+    challengeComplete: false,
+    readout: [],
+    note: "Drag the vector endpoints with a pen or mouse-left.",
+    formula: "A + B = R",
+  }));
+  const [formulaOpen, setFormulaOpen] = useState(false);
 
   useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setShowGuide(false);
-      if (event.key === "ArrowRight") nextMode();
-      if (event.key === "ArrowLeft") previousMode();
-      if (event.key.toLowerCase() === "g") setShowGuide((visible) => !visible);
+    if (!canvasRef.current) return undefined;
+    const engine = new VectorLessonEngine(canvasRef.current, setUi);
+    engineRef.current = engine;
+    engine.setMode(mode);
+    return () => {
+      engine.destroy();
+      engineRef.current = null;
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  });
+  }, []);
+
+  useEffect(() => {
+    engineRef.current?.setMode(mode);
+    setFormulaOpen(false);
+  }, [mode]);
+
+  const reset = () => engineRef.current?.resetMode();
+  const nextChallenge = () => engineRef.current?.nextChallenge();
+  const resetView = () => engineRef.current?.resetView();
+
+  const meta = MODES.find(([id]) => id === mode) ?? MODES[0];
 
   return (
     <main className="va-app">
-      <VectorStage
-        mode={mode}
-        values={values}
-        update={update}
-        resetToken={viewResetToken}
-      />
+      <canvas ref={canvasRef} className="va-canvas" aria-label="Interactive vector algebra board" />
 
-      <header className="va-topbar">
-        <div className="va-brand">
-          <span className="va-eyebrow">ACTIVELEARN / SCHOOL</span>
-          <div className="va-brand-row">
-            <h1>Vector Algebra</h1>
-            <span className="va-live-dot">LIVE</span>
-          </div>
-          <p>{modeSubtitle}</p>
+      <header className="va-header">
+        <div>
+          <span className="va-kicker">ACTIVELEARN / SCHOOL / MATHEMATICS</span>
+          <h1>Vector Algebra</h1>
+          <p>{meta[2]}</p>
         </div>
-
-        <div className="va-top-actions">
-          <button className="va-ghost-button" onClick={() => setShowGuide((visible) => !visible)}>
-            {showGuide ? "Hide guide" : "Show guide"}
+        <div className="va-header-actions">
+          <button onClick={() => setFormulaOpen((open) => !open)} className={formulaOpen ? "va-button active" : "va-button"}>
+            Formula
           </button>
-          <button className="va-ghost-button" onClick={() => setShowFormula((visible) => !visible)}>
-            {showFormula ? "Hide formula" : "Formula"}
-          </button>
-          <button className="va-icon-button" onClick={resetLesson} aria-label="Reset lesson" title="Reset lesson">
-            ↻
-          </button>
+          <button onClick={resetView} className="va-button">Reset view</button>
+          <button onClick={reset} className="va-button accent">Reset experiment</button>
         </div>
       </header>
 
-      <nav className="va-mode-rail" aria-label="Vector Algebra topics">
-        <div className="va-mode-list">
-          {MODES.map(([id, label, description], index) => (
-            <button
-              key={id}
-              className={mode === id ? "va-mode active" : "va-mode"}
-              onClick={() => {
-                setMode(id);
-                setShowFormula(false);
-              }}
-              title={description}
-            >
-              <span className="va-mode-index">{String(index + 1).padStart(2, "0")}</span>
-              <span className="va-mode-label">{label}</span>
-            </button>
-          ))}
+      <aside className="va-topic-rail" aria-label="Vector Algebra topics">
+        {MODES.map(([id, label], index) => (
+          <button
+            key={id}
+            className={mode === id ? "va-topic active" : "va-topic"}
+            onClick={() => setMode(id)}
+            title={label}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{label}</strong>
+          </button>
+        ))}
+      </aside>
+
+      <section className="va-task-panel">
+        <div className="va-task-top">
+          <span className="va-kicker">EXPERIMENT</span>
+          <button className="va-task-next" onClick={nextChallenge}>New task ↗</button>
         </div>
-        <div className="va-mode-controls">
-          <button className="va-small-button" onClick={previousMode} aria-label="Previous topic">↑</button>
-          <button className="va-small-button" onClick={nextMode} aria-label="Next topic">↓</button>
-        </div>
-      </nav>
+        <strong>{CHALLENGES[mode]?.[ui.challengeIndex]?.text ?? "Experiment with the vectors."}</strong>
+        <p>
+          {ui.challengeComplete ? "✓ Nice. Try another one." : ui.note}
+        </p>
+      </section>
 
-      {showGuide && <LessonGuide mode={mode} />}
+      <section className="va-readout" aria-live="polite">
+        {ui.readout.map((item) => (
+          <div key={item.label} className="va-readout-row">
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </section>
 
-      {showFormula && <FormulaPanel mode={mode} values={values} />}
+      {formulaOpen && (
+        <FormulaCard mode={mode} />
+      )}
 
-      <div className="va-footer">
-        <span>CLASS XII · MATHEMATICS</span>
-        <span>Pen: manipulate · Finger: pan / zoom · Mouse: left = pen · right = pan</span>
-      </div>
+      <footer className="va-footer">
+        <span>CLASS XII · NCERT VECTOR ALGEBRA</span>
+        <span>Pen / mouse-left = manipulate · Finger / mouse-right = pan · Wheel / pinch = zoom</span>
+      </footer>
     </main>
   );
 }
 
-function LessonGuide({ mode }) {
-  const guides = {
-    basics: {
-      kicker: "START HERE",
-      title: "A vector has magnitude and direction.",
-      body: "Drag the endpoint. Observe the position vector, magnitude, and direction angle update together.",
-      hint: "Try moving the point into another quadrant.",
-    },
-    types: {
-      kicker: "CLASSIFY",
-      title: "Turn geometry into vector types.",
-      body: "Move the vector endpoints and compare zero, unit, equal, negative, and collinear cases.",
-      hint: "Make B twice as long as A, then make it point backwards.",
-    },
-    addition: {
-      kicker: "BUILD THE RESULTANT",
-      title: "Move the arrows. The resultant follows.",
-      body: "Drag either endpoint. The triangle construction and parallelogram construction remain linked to the same A + B.",
-      hint: "Make B point perpendicular to A and watch the geometry change.",
-    },
-    scalar: {
-      kicker: "SCALE",
-      title: "Positive, zero, negative: one scalar changes everything.",
-      body: "Drag the scalar control. The vector scales continuously through zero and reverses direction when λ becomes negative.",
-      hint: "Set λ = −2 and compare the new direction.",
-    },
-    section: {
-      kicker: "DIVIDE A SEGMENT",
-      title: "The point R moves when the ratio changes.",
-      body: "Drag P or Q, then change m:n. The internal section point follows the vector section formula.",
-      hint: "Try 1:1 first. Then move to 1:3.",
-    },
-    dot: {
-      kicker: "SCALAR PRODUCT",
-      title: "How much does A point along B?",
-      body: "Drag either vector. The angle, projection, and dot product update live.",
-      hint: "Find the zero case without touching the formula panel.",
-    },
-    cross: {
-      kicker: "VECTOR PRODUCT",
-      title: "The new vector is perpendicular to both.",
-      body: "Change the two vectors in the projected 3D view. The cross product direction follows the right-hand rule and its magnitude gives area.",
-      hint: "Make A and B parallel: the cross product collapses to zero.",
-    },
-  };
-
-  const guide = guides[mode];
-
-  return (
-    <aside className="va-guide">
-      <span className="va-panel-kicker">{guide.kicker}</span>
-      <h2>{guide.title}</h2>
-      <p>{guide.body}</p>
-      <div className="va-guide-hint">↳ {guide.hint}</div>
-    </aside>
-  );
-}
-
-function FormulaPanel({ mode, values }) {
+function FormulaCard({ mode }) {
   const formulas = {
     basics: [
-      ["Position vector", "A = x i + y j"],
-      ["Magnitude", "|A| = √(x² + y²)"],
-      ["Direction", "tan θ = y / x"],
+      ["Position vector", "A = xi + yj + zk"],
+      ["Magnitude", "|A| = √(x² + y² + z²)"],
+      ["Direction cosines", "cos α = x/|A|,  cos β = y/|A|,  cos γ = z/|A|"],
     ],
     types: [
       ["Unit vector", "Â = A / |A|"],
       ["Negative vector", "−A has equal magnitude and opposite direction"],
-      ["Collinear vectors", "A = λB"],
+      ["Collinear", "A = λB"],
     ],
     addition: [
-      ["Vector addition", "A + B = (a₁ + b₁)i + (a₂ + b₂)j"],
-      ["Magnitude", "|A + B| = √((a₁+b₁)² + (a₂+b₂)²)"],
+      ["Addition", "A + B = (a₁+b₁)i + (a₂+b₂)j"],
+      ["Resultant", "R = A + B"],
+      ["Parallelogram", "Diagonal from common tail gives R"],
     ],
     scalar: [
       ["Scalar multiplication", "λA = (λa₁)i + (λa₂)j"],
-      ["Components", "A = Aₓ i + Aᵧ j"],
-      ["Magnitude", "|A| = √(Aₓ² + Aᵧ²)"],
+      ["Components", "A = Aₓi + Aᵧj + A_zk"],
+      ["Magnitude", "|λA| = |λ||A|"],
     ],
     section: [
-      ["Internal section", "R = (mQ + nP) / (m + n)"],
-      ["Midpoint", "M = (P + Q) / 2"],
-      ["Current ratio", `m:n = ${values.ratio.toFixed(1)}:1`],
+      ["Internal section", "R = (mQ + nP)/(m+n)"],
+      ["Midpoint", "M = (P + Q)/2"],
+      ["Ratio", "PR:RQ = m:n"],
     ],
     dot: [
-      ["Scalar product", "A · B = |A||B| cos θ"],
-      ["Component form", "A · B = a₁b₁ + a₂b₂ + a₃b₃"],
-      ["Projection", "proj_B A = (A · B) / |B|"],
+      ["Scalar product", "A·B = |A||B|cos θ"],
+      ["Component form", "A·B = a₁b₁ + a₂b₂ + a₃b₃"],
+      ["Projection", "scalar projection of B on A = (A·B)/|A|"],
     ],
     cross: [
-      ["Vector product", "A × B = |A||B| sin θ n̂"],
-      ["Parallelogram area", "|A × B|"],
-      ["Triangle area", "½|A × B|"],
+      ["Vector product", "A×B = |A||B|sin θ n̂"],
+      ["Parallelogram area", "|A×B|"],
+      ["Triangle area", "½|A×B|"],
     ],
   };
 
   return (
-    <aside className="va-formula-panel">
-      <div className="va-formula-heading">
-        <span>NCERT TOOLBOX</span>
-        <strong>{MODES.find(([id]) => id === mode)?.[1]}</strong>
-      </div>
-      <div className="va-formula-list">
-        {formulas[mode].map(([label, formula]) => (
-          <div key={label} className="va-formula-row">
-            <span>{label}</span>
-            <strong>{formula}</strong>
-          </div>
-        ))}
-      </div>
+    <aside className="va-formula-card">
+      <span className="va-kicker">REFERENCE</span>
+      {formulas[mode].map(([label, formula]) => (
+        <div className="va-formula-row" key={label}>
+          <span>{label}</span>
+          <strong>{formula}</strong>
+        </div>
+      ))}
     </aside>
   );
 }
 
-function VectorStage({ mode, values, update, resetToken }) {
-  const canvasRef = useRef(null);
-  const stateRef = useRef({
-    camera: { x: 0, y: 0, zoom: 1 },
-    pointers: new Map(),
-    drag: null,
-    lastTouchCenter: null,
-    lastPinchDistance: null,
-  });
+class VectorLessonEngine {
+  constructor(canvas, onUIChange) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+    this.onUIChange = onUIChange;
+    this.mode = "addition";
+    this.data = cloneInitial();
+    this.challengeIndex = 0;
+    this.camera = { x: 0, y: 0, zoom: 1 };
+    this.cssWidth = 1;
+    this.cssHeight = 1;
+    this.dpr = window.devicePixelRatio || 1;
+    this.baseScale = 60;
+    this.pointers = new Map();
+    this.drag = null;
+    this.pan = null;
+    this.pinch = null;
+    this.framePending = false;
+    this.uiFramePending = false;
+    this.destroyed = false;
 
-  const scene = useMemo(() => buildScene(mode, values), [mode, values]);
+    this.onPointerDown = this.onPointerDown.bind(this);
+    this.onPointerMove = this.onPointerMove.bind(this);
+    this.onPointerUp = this.onPointerUp.bind(this);
+    this.onPointerCancel = this.onPointerCancel.bind(this);
+    this.onWheel = this.onWheel.bind(this);
+    this.onContextMenu = (event) => event.preventDefault();
 
-  useEffect(() => {
-    stateRef.current.camera = { x: 0, y: 0, zoom: 1 };
-    stateRef.current.drag = null;
-    stateRef.current.lastTouchCenter = null;
-    stateRef.current.lastPinchDistance = null;
-  }, [resetToken, mode]);
+    canvas.addEventListener("pointerdown", this.onPointerDown);
+    canvas.addEventListener("pointermove", this.onPointerMove);
+    canvas.addEventListener("pointerup", this.onPointerUp);
+    canvas.addEventListener("pointercancel", this.onPointerCancel);
+    canvas.addEventListener("wheel", this.onWheel, { passive: false });
+    canvas.addEventListener("contextmenu", this.onContextMenu);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(canvas);
+    this.resize();
+    this.emitUI();
+  }
 
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.round(rect.width * dpr));
-      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  destroy() {
+    this.destroyed = true;
+    this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+    this.canvas.removeEventListener("pointermove", this.onPointerMove);
+    this.canvas.removeEventListener("pointerup", this.onPointerUp);
+    this.canvas.removeEventListener("pointercancel", this.onPointerCancel);
+    this.canvas.removeEventListener("wheel", this.onWheel);
+    this.canvas.removeEventListener("contextmenu", this.onContextMenu);
+    this.resizeObserver.disconnect();
+    this.pointers.clear();
+  }
+
+  resize() {
+    const rect = this.canvas.getBoundingClientRect();
+    this.cssWidth = Math.max(1, rect.width);
+    this.cssHeight = Math.max(1, rect.height);
+    this.dpr = window.devicePixelRatio || 1;
+    this.baseScale = clamp(Math.min(this.cssWidth, this.cssHeight) * 0.075, 44, 78);
+    this.canvas.width = Math.round(this.cssWidth * this.dpr);
+    this.canvas.height = Math.round(this.cssHeight * this.dpr);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.render();
+  }
+
+  setMode(mode) {
+    this.mode = MODES.some(([id]) => id === mode) ? mode : "addition";
+    this.challengeIndex = 0;
+    this.drag = null;
+    this.pan = null;
+    this.pinch = null;
+    this.resetView();
+    this.emitUI();
+  }
+
+  resetMode() {
+    this.data[this.mode] = { ...INITIAL[this.mode] };
+    this.challengeIndex = 0;
+    this.drag = null;
+    this.emitUI();
+    this.render();
+  }
+
+  nextChallenge() {
+    const list = CHALLENGES[this.mode] ?? [];
+    this.challengeIndex = list.length ? (this.challengeIndex + 1) % list.length : 0;
+    this.emitUI();
+  }
+
+  resetView() {
+    this.camera.x = 0;
+    this.camera.y = 0;
+    this.camera.zoom = 1;
+    this.render();
+  }
+
+  screenScale() {
+    return this.baseScale * this.camera.zoom;
+  }
+
+  screenToWorld(screenX, screenY) {
+    const scale = this.screenScale();
+    return {
+      x: this.camera.x + (screenX - this.cssWidth / 2) / scale,
+      y: this.camera.y - (screenY - this.cssHeight / 2) / scale,
+    };
+  }
+
+  worldToScreen(x, y) {
+    const scale = this.screenScale();
+    return {
+      x: this.cssWidth / 2 + (x - this.camera.x) * scale,
+      y: this.cssHeight / 2 - (y - this.camera.y) * scale,
+    };
+  }
+
+  zoomAt(factor, screenX, screenY) {
+    const before = this.screenToWorld(screenX, screenY);
+    this.camera.zoom = clamp(this.camera.zoom * factor, 0.45, 3.2);
+    const after = this.screenToWorld(screenX, screenY);
+    this.camera.x += before.x - after.x;
+    this.camera.y += before.y - after.y;
+    this.render();
+  }
+
+  startPan(point, id) {
+    this.pan = { id, x: point.x, y: point.y };
+  }
+
+  updatePan(point) {
+    if (!this.pan) return;
+    const scale = this.screenScale();
+    this.camera.x -= (point.x - this.pan.x) / scale;
+    this.camera.y += (point.y - this.pan.y) / scale;
+    this.pan = { ...this.pan, x: point.x, y: point.y };
+    this.render();
+  }
+
+  endPan(pointerId) {
+    if (this.pan?.id === pointerId) this.pan = null;
+  }
+
+  onPointerDown(event) {
+    const point = this.pointFromEvent(event);
+
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      this.pointers.set(event.pointerId, point);
+      if (this.pointers.size === 1) {
+        this.startPan(point, event.pointerId);
+      } else if (this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        this.pan = null;
+        this.pinch = {
+          distance: Math.hypot(a.x - b.x, a.y - b.y),
+          center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        };
+      }
+      return;
+    }
+
+    if (event.pointerType === "mouse" && event.button === 2) {
+      event.preventDefault();
+      this.startPan(point, event.pointerId);
+      this.canvas.setPointerCapture?.(event.pointerId);
+      return;
+    }
+
+    if ((event.pointerType === "pen" || event.pointerType === "mouse") && event.button === 0) {
+      const hit = this.hitTest(point.x, point.y);
+      if (hit) {
+        event.preventDefault();
+        this.drag = { ...hit, pointerId: event.pointerId };
+        this.canvas.setPointerCapture?.(event.pointerId);
+        this.render();
+      }
+    }
+  }
+
+  onPointerMove(event) {
+    const point = this.pointFromEvent(event);
+
+    if (event.pointerType === "touch") {
+      if (!this.pointers.has(event.pointerId)) return;
+      event.preventDefault();
+      this.pointers.set(event.pointerId, point);
+      this.updateTouchGesture();
+      return;
+    }
+
+    if (this.pan?.id === event.pointerId) {
+      event.preventDefault();
+      this.updatePan(point);
+      return;
+    }
+
+    if (this.drag?.pointerId === event.pointerId) {
+      event.preventDefault();
+      const world = this.screenToWorld(point.x, point.y);
+      this.applyDrag(world, point);
+      this.render();
+      this.emitUIThrottled();
+    }
+  }
+
+  onPointerUp(event) {
+    if (event.pointerType === "touch") {
+      if (!this.pointers.has(event.pointerId)) return;
+      event.preventDefault();
+      this.pointers.delete(event.pointerId);
+      if (this.pointers.size === 1) {
+        const [point] = this.pointers.values();
+        this.startPan(point, [...this.pointers.keys()][0]);
+        this.pinch = null;
+      } else {
+        this.pan = null;
+        this.pinch = null;
+      }
+      return;
+    }
+
+    if (this.pan?.id === event.pointerId) {
+      this.endPan(event.pointerId);
+      this.canvas.releasePointerCapture?.(event.pointerId);
+    }
+
+    if (this.drag?.pointerId === event.pointerId) {
+      this.drag = null;
+      this.canvas.releasePointerCapture?.(event.pointerId);
+      this.emitUI();
+      this.render();
+    }
+  }
+
+  onPointerCancel(event) {
+    if (event.pointerType === "touch") {
+      this.pointers.delete(event.pointerId);
+      if (this.pointers.size < 2) this.pinch = null;
+      if (this.pointers.size === 0) this.pan = null;
+      return;
+    }
+    if (this.drag?.pointerId === event.pointerId) this.drag = null;
+    if (this.pan?.id === event.pointerId) this.pan = null;
+  }
+
+  updateTouchGesture() {
+    const touchPoints = [...this.pointers.values()];
+    if (touchPoints.length === 1) {
+      const [point] = touchPoints;
+      if (this.pan) this.updatePan(point);
+      else this.startPan(point, [...this.pointers.keys()][0]);
+      return;
+    }
+    if (touchPoints.length < 2) return;
+
+    const [a, b] = touchPoints;
+    const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const distance = Math.hypot(a.x - b.x, a.y - b.y);
+
+    if (!this.pinch) {
+      this.pinch = { distance, center };
+      return;
+    }
+
+    const dx = center.x - this.pinch.center.x;
+    const dy = center.y - this.pinch.center.y;
+    const scale = this.screenScale();
+    this.camera.x -= dx / scale;
+    this.camera.y += dy / scale;
+    if (distance > 0 && this.pinch.distance > 0) {
+      this.zoomAt(distance / this.pinch.distance, center.x, center.y);
+    } else {
+      this.render();
+    }
+    this.pinch = { distance, center };
+  }
+
+  onWheel(event) {
+    event.preventDefault();
+    const point = this.pointFromEvent(event);
+    this.zoomAt(Math.exp(-event.deltaY * 0.0014), point.x, point.y);
+  }
+
+  pointFromEvent(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
+  hitTest(screenX, screenY) {
+    const radius = 24;
+    const hits = [];
+
+    const push = (id, p, distanceBias = 0) => {
+      const d = Math.hypot(screenX - p.x, screenY - p.y);
+      if (d <= radius + distanceBias) hits.push({ id, distance: d });
     };
 
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
-    resize();
-    return () => observer.disconnect();
-  }, []);
+    const point = (x, y) => this.worldToScreen(x, y);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+    if (this.mode === "basics") {
+      const v = this.data.basics;
+      const p = this.project3D(v.x, v.y, v.z);
+      push("A-xy", p);
+      push("A-z", { x: p.x, y: p.y - this.screenScale() });
+    }
 
-    let raf = 0;
-    const render = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, rect.width, rect.height);
-      drawScene(ctx, rect.width, rect.height, stateRef.current.camera, scene);
+    if (this.mode === "types") {
+      const v = this.data.types;
+      push("A", point(v.ax, v.ay));
+      push("B", point(v.bx, v.by));
+    }
+
+    if (this.mode === "addition") {
+      const v = this.data.addition;
+      push("A", point(v.ax, v.ay));
+      push("B", point(v.bx, v.by));
+    }
+
+    if (this.mode === "scalar") {
+      const v = this.data.scalar;
+      const aMag = Math.max(0.5, magnitude2(v.ax, v.ay));
+      const s = { x: v.ax * v.lambda, y: v.ay * v.lambda };
+      push("A", point(v.ax, v.ay));
+      push("S", point(s.x, s.y));
+      if (Math.abs(v.lambda) < 0.08) push("S", point(0, 0), 6);
+      if (!aMag) hits.length = 0;
+    }
+
+    if (this.mode === "section") {
+      const v = this.data.section;
+      const rx = v.px + (v.qx - v.px) * v.t;
+      const ry = v.py + (v.qy - v.py) * v.t;
+      push("P", point(v.px, v.py));
+      push("Q", point(v.qx, v.qy));
+      push("R", point(rx, ry));
+    }
+
+    if (this.mode === "dot") {
+      const v = this.data.dot;
+      push("A", point(v.ax, v.ay));
+      push("B", point(v.bx, v.by));
+    }
+
+    if (this.mode === "cross") {
+      const v = this.data.cross;
+      const a = this.project3D(v.ax, v.ay, v.az);
+      const b = this.project3D(v.bx, v.by, v.bz);
+      push("A-xy", a);
+      push("A-z", { x: a.x, y: a.y - this.screenScale() });
+      push("B-xy", b);
+      push("B-z", { x: b.x, y: b.y - this.screenScale() });
+    }
+
+    hits.sort((a, b) => a.distance - b.distance);
+    return hits[0] ?? null;
+  }
+
+  project3D(x, y, z) {
+    const s = this.screenScale();
+    const kx = 0.74;
+    const ky = 0.42;
+    return {
+      x: this.cssWidth / 2 + (x - y) * s * kx,
+      y: this.cssHeight / 2 - z * s + (x + y) * s * ky,
     };
+  }
 
-    const loop = () => {
-      render();
-      raf = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => cancelAnimationFrame(raf);
-  }, [scene]);
+  invertProjectedXY(screenX, screenY, z) {
+    const s = this.screenScale();
+    const kx = 0.74;
+    const ky = 0.42;
+    const u = (screenX - this.cssWidth / 2) / (s * kx);
+    const v = (screenY - this.cssHeight / 2 + z * s) / (s * ky);
+    return { x: (u + v) / 2, y: (v - u) / 2 };
+  }
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+  applyDrag(world, screenPoint) {
+    const v = this.data[this.mode];
+    if (!this.drag) return;
 
-    const getPoint = (event) => {
-      const rect = canvas.getBoundingClientRect();
-      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    };
+    if (this.mode === "basics") {
+      if (this.drag.id === "A-z") {
+        v.z = clamp(v.z - (screenPoint.y - this.project3D(v.x, v.y, v.z).y) / this.screenScale(), -5, 5);
+      } else {
+        const next = this.invertProjectedXY(screenPoint.x, screenPoint.y, v.z);
+        v.x = clamp(next.x, -7, 7);
+        v.y = clamp(next.y, -5, 5);
+      }
+    }
 
-    const screenToWorld = (point) => {
-      const { camera } = stateRef.current;
+    if (this.mode === "types") {
+      if (this.drag.id === "A") {
+        v.ax = clamp(world.x, -7, 7);
+        v.ay = clamp(world.y, -5, 5);
+      } else {
+        v.bx = clamp(world.x, -7, 7);
+        v.by = clamp(world.y, -5, 5);
+      }
+    }
+
+    if (this.mode === "addition") {
+      if (this.drag.id === "A") {
+        v.ax = clamp(world.x, -7, 7);
+        v.ay = clamp(world.y, -5, 5);
+      } else {
+        v.bx = clamp(world.x, -7, 7);
+        v.by = clamp(world.y, -5, 5);
+      }
+    }
+
+    if (this.mode === "scalar") {
+      if (this.drag.id === "A") {
+        const oldMag = Math.max(0.6, magnitude2(v.ax, v.ay));
+        const next = { x: clamp(world.x, -6, 6), y: clamp(world.y, -5, 5) };
+        const scale = oldMag ? Math.min(1.6, magnitude2(next.x, next.y) / oldMag) : 1;
+        if (scale > 0.12) {
+          const unit = magnitude2(next.x, next.y);
+          const nx = next.x / unit;
+          const ny = next.y / unit;
+          v.ax = nx * clamp(magnitude2(next.x, next.y), 0.6, 6);
+          v.ay = ny * clamp(magnitude2(next.x, next.y), 0.6, 5);
+        }
+      } else {
+        const a2 = Math.max(0.36, v.ax * v.ax + v.ay * v.ay);
+        v.lambda = clamp((world.x * v.ax + world.y * v.ay) / a2, -3, 3);
+      }
+    }
+
+    if (this.mode === "section") {
+      const p = { x: v.px, y: v.py };
+      const q = { x: v.qx, y: v.qy };
+      const dx = q.x - p.x;
+      const dy = q.y - p.y;
+      const len2 = dx * dx + dy * dy || 1;
+      if (this.drag.id === "P") {
+        v.px = clamp(world.x, -7, 7);
+        v.py = clamp(world.y, -5, 5);
+      } else if (this.drag.id === "Q") {
+        v.qx = clamp(world.x, -7, 7);
+        v.qy = clamp(world.y, -5, 5);
+      } else {
+        v.t = clamp(((world.x - p.x) * dx + (world.y - p.y) * dy) / len2, 0, 1);
+      }
+    }
+
+    if (this.mode === "dot") {
+      if (this.drag.id === "A") {
+        v.ax = clamp(world.x, -7, 7);
+        v.ay = clamp(world.y, -5, 5);
+      } else {
+        v.bx = clamp(world.x, -7, 7);
+        v.by = clamp(world.y, -5, 5);
+      }
+    }
+
+    if (this.mode === "cross") {
+      if (this.drag.id === "A-z") {
+        const p = this.project3D(v.ax, v.ay, v.az);
+        v.az = clamp(v.az - (screenPoint.y - p.y) / this.screenScale(), -4, 4);
+      } else if (this.drag.id === "B-z") {
+        const p = this.project3D(v.bx, v.by, v.bz);
+        v.bz = clamp(v.bz - (screenPoint.y - p.y) / this.screenScale(), -4, 4);
+      } else if (this.drag.id === "A-xy") {
+        const next = this.invertProjectedXY(screenPoint.x, screenPoint.y, v.az);
+        v.ax = clamp(next.x, -5, 5);
+        v.ay = clamp(next.y, -5, 5);
+      } else if (this.drag.id === "B-xy") {
+        const next = this.invertProjectedXY(screenPoint.x, screenPoint.y, v.bz);
+        v.bx = clamp(next.x, -5, 5);
+        v.by = clamp(next.y, -5, 5);
+      }
+    }
+  }
+
+  currentSnapshot() {
+    const v = this.data[this.mode];
+    if (this.mode === "basics") {
+      const mag = magnitude3(v.x, v.y, v.z);
+      const alpha = mag ? deg(Math.acos(clamp(v.x / mag, -1, 1))) : 0;
+      const beta = mag ? deg(Math.acos(clamp(v.y / mag, -1, 1))) : 0;
+      const gamma = mag ? deg(Math.acos(clamp(v.z / mag, -1, 1))) : 0;
       return {
-        x: (point.x / camera.zoom) + camera.x,
-        y: (point.y / camera.zoom) + camera.y,
+        readout: [
+          ["A", `(${fmt(v.x)}, ${fmt(v.y)}, ${fmt(v.z)})`],
+          ["|A|", `${fmt(mag)} units`],
+          ["α β γ", `${fmt(alpha, 1)}°  ${fmt(beta, 1)}°  ${fmt(gamma, 1)}°`],
+        ],
+        note: "Drag A in the plane. Drag the small z handle to change depth.",
+        formula: "A = xi + yj + zk",
+        challengeValue: v,
       };
-    };
+    }
 
-    const updateCameraFromGesture = () => {
-      const pointers = [...stateRef.current.pointers.values()];
-      const camera = stateRef.current.camera;
-      if (pointers.length === 1) {
-        const point = pointers[0];
-        if (stateRef.current.lastTouchCenter) {
-          camera.x -= (point.x - stateRef.current.lastTouchCenter.x) / camera.zoom;
-          camera.y -= (point.y - stateRef.current.lastTouchCenter.y) / camera.zoom;
-        }
-        stateRef.current.lastTouchCenter = { ...point };
-        stateRef.current.lastPinchDistance = null;
-        return;
-      }
-      if (pointers.length < 2) return;
+    if (this.mode === "types") {
+      const am = magnitude2(v.ax, v.ay);
+      const bm = magnitude2(v.bx, v.by);
+      const collinear = am * bm > 0.05 && Math.abs(cross2(v.ax, v.ay, v.bx, v.by)) < 0.08;
+      let relation = "different directions";
+      if (am < 0.08) relation = "A is zero";
+      else if (bm < 0.08) relation = "B is zero";
+      else if (Math.abs(am - 1) < 0.05) relation = "A is unit";
+      else if (Math.abs(bm - 1) < 0.05) relation = "B is unit";
+      else if (Math.hypot(v.ax - v.bx, v.ay - v.by) < 0.12) relation = "equal vectors";
+      else if (Math.hypot(v.ax + v.bx, v.ay + v.by) < 0.12) relation = "negative vectors";
+      else if (collinear) relation = "collinear vectors";
+      return {
+        readout: [
+          ["A", `(${fmt(v.ax)}, ${fmt(v.ay)})`],
+          ["B", `(${fmt(v.bx)}, ${fmt(v.by)})`],
+          ["Relation", relation],
+        ],
+        note: "Grab either endpoint. The classification updates from the actual components.",
+        formula: "A = λB for collinear vectors",
+        challengeValue: v,
+      };
+    }
 
-      const [a, b] = pointers;
-      const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const distance = Math.hypot(a.x - b.x, a.y - b.y);
-      if (stateRef.current.lastTouchCenter) {
-        camera.x -= (center.x - stateRef.current.lastTouchCenter.x) / camera.zoom;
-        camera.y -= (center.y - stateRef.current.lastTouchCenter.y) / camera.zoom;
-      }
-      if (stateRef.current.lastPinchDistance && distance > 0) {
-        zoomAt(stateRef.current.camera, distance / stateRef.current.lastPinchDistance, center);
-      }
-      stateRef.current.lastTouchCenter = center;
-      stateRef.current.lastPinchDistance = distance;
-    };
+    if (this.mode === "addition") {
+      const rx = v.ax + v.bx;
+      const ry = v.ay + v.by;
+      return {
+        readout: [
+          ["A", `(${fmt(v.ax)}, ${fmt(v.ay)})`],
+          ["B", `(${fmt(v.bx)}, ${fmt(v.by)})`],
+          ["R = A + B", `(${fmt(rx)}, ${fmt(ry)})`],
+        ],
+        note: "Drag A or B. The head-to-tail construction, parallelogram and resultant all move together.",
+        formula: "R = A + B",
+        challengeValue: v,
+      };
+    }
 
-    const zoomAt = (camera, factor, point) => {
-      const before = { x: point.x / camera.zoom + camera.x, y: point.y / camera.zoom + camera.y };
-      camera.zoom = clamp(camera.zoom * factor, 0.45, 3.5);
-      const after = { x: point.x / camera.zoom + camera.x, y: point.y / camera.zoom + camera.y };
-      camera.x += before.x - after.x;
-      camera.y += before.y - after.y;
-    };
+    if (this.mode === "scalar") {
+      const sx = v.lambda * v.ax;
+      const sy = v.lambda * v.ay;
+      return {
+        readout: [
+          ["A", `(${fmt(v.ax)}, ${fmt(v.ay)})`],
+          ["λ", fmt(v.lambda, 2)],
+          ["λA", `(${fmt(sx)}, ${fmt(sy)})`],
+        ],
+        note: "Drag the blue A endpoint, or drag the green λA endpoint to scale and reverse it.",
+        formula: "λA = (λa₁)i + (λa₂)j",
+        challengeValue: v,
+      };
+    }
 
-    const onPointerDown = (event) => {
-      const point = getPoint(event);
-      if (event.pointerType === "touch") {
-        event.preventDefault();
-        stateRef.current.pointers.set(event.pointerId, point);
-        updateCameraFromGesture();
-        return;
-      }
-      if (event.pointerType === "mouse" && event.button === 2) {
-        event.preventDefault();
-        stateRef.current.drag = { kind: "pan", pointerId: event.pointerId, point };
-        canvas.setPointerCapture?.(event.pointerId);
-        return;
-      }
-      if (event.pointerType === "pen" || (event.pointerType === "mouse" && event.button === 0)) {
-        event.preventDefault();
-        const world = screenToWorld(point);
-        const hit = hitTest(scene, world);
-        if (!hit) return;
-        stateRef.current.drag = { kind: "object", pointerId: event.pointerId, hit, point };
-        canvas.setPointerCapture?.(event.pointerId);
-      }
-    };
+    if (this.mode === "section") {
+      const rx = v.px + (v.qx - v.px) * v.t;
+      const ry = v.py + (v.qy - v.py) * v.t;
+      const ratio = v.t >= 0.5 ? `${fmt(v.t / (1 - v.t || 1))}:1` : `1:${fmt((1 - v.t) / (v.t || 1))}`;
+      return {
+        readout: [
+          ["P", `(${fmt(v.px)}, ${fmt(v.py)})`],
+          ["R", `(${fmt(rx)}, ${fmt(ry)})`],
+          ["Q", `(${fmt(v.qx)}, ${fmt(v.qy)})`],
+          ["PR : RQ", ratio],
+        ],
+        note: "Drag P or Q. Drag R along the segment to change the division ratio.",
+        formula: "R = (mQ + nP)/(m+n)",
+        challengeValue: v,
+      };
+    }
 
-    const onPointerMove = (event) => {
-      const point = getPoint(event);
-      if (event.pointerType === "touch") {
-        if (!stateRef.current.pointers.has(event.pointerId)) return;
-        event.preventDefault();
-        stateRef.current.pointers.set(event.pointerId, point);
-        updateCameraFromGesture();
-        return;
-      }
+    if (this.mode === "dot") {
+      const dot = dot2(v.ax, v.ay, v.bx, v.by);
+      const angle = deg(angle2(v.ax, v.ay, v.bx, v.by));
+      const aMag = magnitude2(v.ax, v.ay);
+      const projection = aMag ? dot / aMag : 0;
+      const cross = Math.abs(cross2(v.ax, v.ay, v.bx, v.by));
+      return {
+        readout: [
+          ["θ", `${fmt(angle, 1)}°`],
+          ["A · B", fmt(dot, 2)],
+          ["Projection of B on A", `${fmt(projection, 2)} units`],
+        ],
+        note: "Drag B around A. The projection foot and dot product show exactly how much points along A.",
+        formula: "A · B = |A||B| cos θ",
+        challengeValue: { ...v, dot, cross2: cross },
+      };
+    }
 
-      const drag = stateRef.current.drag;
-      if (!drag || drag.pointerId !== event.pointerId) return;
-      event.preventDefault();
-
-      if (drag.kind === "pan") {
-        const camera = stateRef.current.camera;
-        camera.x -= (point.x - drag.point.x) / camera.zoom;
-        camera.y -= (point.y - drag.point.y) / camera.zoom;
-        drag.point = point;
-        return;
-      }
-
-      if (drag.kind === "object") {
-        const world = screenToWorld(point);
-        handleObjectDrag(mode, drag.hit, world, update, values);
-      }
-    };
-
-    const onPointerUp = (event) => {
-      if (event.pointerType === "touch") {
-        stateRef.current.pointers.delete(event.pointerId);
-        if (stateRef.current.pointers.size === 0) {
-          stateRef.current.lastTouchCenter = null;
-          stateRef.current.lastPinchDistance = null;
-        }
-        return;
-      }
-      if (stateRef.current.drag?.pointerId === event.pointerId) {
-        canvas.releasePointerCapture?.(event.pointerId);
-        stateRef.current.drag = null;
-      }
-    };
-
-    const onWheel = (event) => {
-      event.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      zoomAt(stateRef.current.camera, Math.exp(-event.deltaY * 0.0015), point);
-    };
-
-    const onContextMenu = (event) => event.preventDefault();
-
-    canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("pointercancel", onPointerUp);
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-    canvas.addEventListener("contextmenu", onContextMenu);
-
-    return () => {
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerUp);
-      canvas.removeEventListener("wheel", onWheel);
-      canvas.removeEventListener("contextmenu", onContextMenu);
-    };
-  }, [mode, scene, update, values]);
-
-  return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="va-canvas"
-        aria-label="Interactive Vector Algebra board"
-      />
-      <StageControls mode={mode} values={values} update={update} />
-    </>
-  );
-}
-
-function StageControls({ mode, values, update }) {
-  if (mode === "scalar") {
-    return (
-      <div className="va-stage-control">
-        <div>
-          <span>SCALAR λ</span>
-          <strong>{values.lambda.toFixed(2)}</strong>
-        </div>
-        <input
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value={values.lambda}
-          onChange={(event) => update("lambda", Number(event.target.value))}
-          aria-label="Scalar lambda"
-        />
-      </div>
-    );
-  }
-
-  if (mode === "section") {
-    return (
-      <div className="va-stage-control">
-        <div>
-          <span>INTERNAL RATIO m:n</span>
-          <strong>{values.ratio.toFixed(1)}:1</strong>
-        </div>
-        <input
-          type="range"
-          min="0.5"
-          max="6"
-          step="0.1"
-          value={values.ratio}
-          onChange={(event) => update("ratio", Number(event.target.value))}
-          aria-label="Section formula ratio"
-        />
-      </div>
-    );
-  }
-
-  return null;
-}
-
-function buildScene(mode, values) {
-  if (mode === "addition") {
+    const A = { x: v.ax, y: v.ay, z: v.az };
+    const B = { x: v.bx, y: v.by, z: v.bz };
+    const C = cross3(A, B);
+    const dot = dot3(A, B);
+    const crossMagnitude = magnitude3(C.x, C.y, C.z);
     return {
-      type: "addition",
-      vectors: [
-        { id: "A", x: values.ax, y: values.ay, colour: "#61d7ff" },
-        { id: "B", x: values.bx, y: values.by, colour: "#ffbf63" },
+      readout: [
+        ["A", `(${fmt(v.ax)}, ${fmt(v.ay)}, ${fmt(v.az)})`],
+        ["B", `(${fmt(v.bx)}, ${fmt(v.by)}, ${fmt(v.bz)})`],
+        ["A × B", `(${fmt(C.x)}, ${fmt(C.y)}, ${fmt(C.z)})`],
+        ["Area", `${fmt(crossMagnitude, 2)} units²`],
       ],
+      note: "Drag each endpoint in the plane. Drag its z handle vertically to change depth.",
+      formula: "A × B = |A||B|sinθ n̂",
+      challengeValue: { ...v, dot, crossMagnitude },
     };
   }
 
-  if (mode === "scalar") {
-    return {
-      type: "scalar",
-      vectors: [{ id: "A", x: 3.5, y: 2, colour: "#61d7ff" }],
-      lambda: values.lambda,
-    };
+  emitUIThrottled() {
+    if (this.uiFramePending) return;
+    this.uiFramePending = true;
+    requestAnimationFrame(() => {
+      this.uiFramePending = false;
+      if (!this.destroyed) this.emitUI();
+    });
   }
 
-  if (mode === "section") {
-    return {
-      type: "section",
-      p: { x: values.px, y: values.py },
-      q: { x: values.qx, y: values.qy },
-      ratio: values.ratio,
-    };
+  emitUI() {
+    const snapshot = this.currentSnapshot();
+    const challenge = CHALLENGES[this.mode]?.[this.challengeIndex];
+    this.onUIChange?.({
+      mode: this.mode,
+      challengeIndex: this.challengeIndex,
+      challengeComplete: Boolean(challenge && challenge.done(snapshot.challengeValue)),
+      readout: snapshot.readout,
+      note: snapshot.note,
+      formula: snapshot.formula,
+    });
   }
 
-  if (mode === "dot") {
-    return {
-      type: "dot",
-      vectors: [
-        { id: "A", x: 4, y: 2, colour: "#61d7ff" },
-        { id: "B", x: 2, y: 4, colour: "#ffbf63" },
-      ],
-    };
+  render() {
+    if (this.destroyed) return;
+    if (this.framePending) return;
+    this.framePending = true;
+    requestAnimationFrame(() => {
+      this.framePending = false;
+      if (this.destroyed) return;
+      const ctx = this.ctx;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
+      ctx.fillStyle = "#06080b";
+      ctx.fillRect(0, 0, this.cssWidth, this.cssHeight);
+      this.drawGrid(ctx);
+      if (this.mode === "basics") this.renderBasics(ctx);
+      if (this.mode === "types") this.renderTypes(ctx);
+      if (this.mode === "addition") this.renderAddition(ctx);
+      if (this.mode === "scalar") this.renderScalar(ctx);
+      if (this.mode === "section") this.renderSection(ctx);
+      if (this.mode === "dot") this.renderDot(ctx);
+      if (this.mode === "cross") this.renderCross(ctx);
+      this.drawOrigin(ctx);
+    });
   }
 
-  if (mode === "cross") {
-    return {
-      type: "cross",
-      vectors: [
-        { id: "A", x: values.ax, y: values.ay, z: 0, colour: "#61d7ff" },
-        { id: "B", x: values.bx, y: values.by, z: 0, colour: "#ffbf63" },
-      ],
-    };
-  }
+  drawGrid(ctx) {
+    const scale = this.screenScale();
+    const step = scale < 34 ? 2 : 1;
+    const left = this.camera.x - this.cssWidth / 2 / scale;
+    const right = this.camera.x + this.cssWidth / 2 / scale;
+    const top = this.camera.y + this.cssHeight / 2 / scale;
+    const bottom = this.camera.y - this.cssHeight / 2 / scale;
 
-  if (mode === "types") {
-    return {
-      type: "types",
-      vectors: [
-        { id: "A", x: values.ax, y: values.ay, colour: "#61d7ff" },
-        { id: "B", x: values.bx, y: values.by, colour: "#ffbf63" },
-      ],
-    };
-  }
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.055)";
+    ctx.fillStyle = "rgba(230,245,255,0.28)";
+    ctx.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
 
-  return {
-    type: "basics",
-    point: { x: values.ax, y: values.ay },
-  };
-}
-
-function hitTest(scene, world) {
-  const threshold = 0.42;
-  if (scene.type === "basics") {
-    return distance(world.x, world.y, scene.point.x, scene.point.y) < threshold ? { kind: "basics-point" } : null;
-  }
-
-  if (["addition", "dot", "types"].includes(scene.type)) {
-    for (const vector of scene.vectors) {
-      if (distance(world.x, world.y, vector.x, vector.y) < threshold) return { kind: "vector-head", id: vector.id };
+    const xStart = Math.floor(left / step) * step;
+    const yStart = Math.floor(bottom / step) * step;
+    for (let x = xStart; x <= right; x += step) {
+      const p = this.worldToScreen(x, 0);
+      ctx.beginPath();
+      ctx.moveTo(Math.round(p.x) + 0.5, 0);
+      ctx.lineTo(Math.round(p.x) + 0.5, this.cssHeight);
+      ctx.stroke();
     }
-  }
-
-  if (scene.type === "scalar") {
-    const scaled = { x: scene.vectors[0].x * scene.lambda, y: scene.vectors[0].y * scene.lambda };
-    if (distance(world.x, world.y, scaled.x, scaled.y) < threshold) return { kind: "scalar-head" };
-    if (distance(world.x, world.y, scene.vectors[0].x, scene.vectors[0].y) < threshold) return { kind: "scalar-base" };
-  }
-
-  if (scene.type === "section") {
-    if (distance(world.x, world.y, scene.p.x, scene.p.y) < threshold) return { kind: "P" };
-    if (distance(world.x, world.y, scene.q.x, scene.q.y) < threshold) return { kind: "Q" };
-  }
-
-  if (scene.type === "cross") {
-    for (const vector of scene.vectors) {
-      const projected = project3D(vector.x, vector.y, vector.z);
-      if (distance(world.x, world.y, projected.x, projected.y) < threshold) return { kind: "cross-head", id: vector.id };
+    for (let y = yStart; y <= top; y += step) {
+      const p = this.worldToScreen(0, y);
+      ctx.beginPath();
+      ctx.moveTo(0, Math.round(p.y) + 0.5);
+      ctx.lineTo(this.cssWidth, Math.round(p.y) + 0.5);
+      ctx.stroke();
     }
-  }
 
-  return null;
-}
-
-function handleObjectDrag(mode, hit, world, update) {
-  if (!hit) return;
-
-  if (mode === "basics" && hit.kind === "basics-point") {
-    update("ax", clamp(Number(world.x.toFixed(2)), -8, 8));
-    update("ay", clamp(Number(world.y.toFixed(2)), -6, 6));
-    return;
-  }
-
-  if (["addition", "dot", "types"].includes(mode) && hit.kind === "vector-head") {
-    if (hit.id === "A") {
-      update("ax", clamp(Number(world.x.toFixed(2)), -8, 8));
-      update("ay", clamp(Number(world.y.toFixed(2)), -6, 6));
-    } else {
-      update("bx", clamp(Number(world.x.toFixed(2)), -8, 8));
-      update("by", clamp(Number(world.y.toFixed(2)), -6, 6));
+    const xAxis = this.worldToScreen(0, 0).y;
+    const yAxis = this.worldToScreen(0, 0).x;
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1.4;
+    if (xAxis >= 0 && xAxis <= this.cssHeight) {
+      ctx.beginPath();
+      ctx.moveTo(0, xAxis);
+      ctx.lineTo(this.cssWidth, xAxis);
+      ctx.stroke();
     }
-    return;
-  }
-
-  if (mode === "section") {
-    if (hit.kind === "P") {
-      update("px", clamp(Number(world.x.toFixed(2)), -8, 8));
-      update("py", clamp(Number(world.y.toFixed(2)), -6, 6));
+    if (yAxis >= 0 && yAxis <= this.cssWidth) {
+      ctx.beginPath();
+      ctx.moveTo(yAxis, 0);
+      ctx.lineTo(yAxis, this.cssHeight);
+      ctx.stroke();
     }
-    if (hit.kind === "Q") {
-      update("qx", clamp(Number(world.x.toFixed(2)), -8, 8));
-      update("qy", clamp(Number(world.y.toFixed(2)), -6, 6));
+
+    const labelStep = step * (scale < 24 ? 2 : 1);
+    for (let x = Math.ceil(left / labelStep) * labelStep; x <= right; x += labelStep) {
+      if (x === 0) continue;
+      const p = this.worldToScreen(x, 0);
+      if (p.x > 20 && p.x < this.cssWidth - 30 && xAxis > 10 && xAxis < this.cssHeight - 10) {
+        ctx.fillText(String(x), p.x + 4, xAxis - 6);
+      }
     }
-    return;
-  }
-
-  if (mode === "scalar" && (hit.kind === "scalar-head" || hit.kind === "scalar-base")) {
-    const base = { x: 3.5, y: 2 };
-    const projection = (world.x * base.x + world.y * base.y) / (base.x * base.x + base.y * base.y);
-    update("lambda", clamp(Number(projection.toFixed(2)), -3, 3));
-    return;
-  }
-
-  if (mode === "cross" && hit.kind === "cross-head") {
-    const z = hit.id === "A" ? 0 : 0;
-    if (hit.id === "A") {
-      update("ax", clamp(Number(world.x.toFixed(2)), -6, 6));
-      update("ay", clamp(Number(world.y.toFixed(2)), -6, 6));
-    } else {
-      update("bx", clamp(Number(world.x.toFixed(2)), -6, 6));
-      update("by", clamp(Number(world.y.toFixed(2)), -6, 6));
+    for (let y = Math.ceil(bottom / labelStep) * labelStep; y <= top; y += labelStep) {
+      if (y === 0) continue;
+      const p = this.worldToScreen(0, y);
+      if (p.y > 16 && p.y < this.cssHeight - 20 && yAxis > 24 && yAxis < this.cssWidth - 10) {
+        ctx.fillText(String(y), yAxis + 7, p.y - 4);
+      }
     }
-    void z;
-  }
-}
-
-function drawScene(ctx, width, height, camera, scene) {
-  const background = "#06080b";
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-
-  const origin = { x: width / 2, y: height / 2 + 32 };
-  const worldScale = Math.min(width, height) / 17 * camera.zoom;
-  const toScreen = (x, y) => ({
-    x: origin.x + (x - camera.x) * worldScale,
-    y: origin.y - (y - camera.y) * worldScale,
-  });
-
-  drawGrid(ctx, width, height, origin, worldScale, camera);
-  drawAxes(ctx, width, height, origin);
-
-  switch (scene.type) {
-    case "basics":
-      drawBasics(ctx, toScreen, scene);
-      break;
-    case "types":
-      drawTypes(ctx, toScreen, scene);
-      break;
-    case "addition":
-      drawAddition(ctx, toScreen, scene);
-      break;
-    case "scalar":
-      drawScalar(ctx, toScreen, scene);
-      break;
-    case "section":
-      drawSection(ctx, toScreen, scene);
-      break;
-    case "dot":
-      drawDot(ctx, toScreen, scene);
-      break;
-    case "cross":
-      drawCross(ctx, toScreen, scene, origin, worldScale);
-      break;
-    default:
-      break;
+    ctx.restore();
   }
 
-  ctx.save();
-  ctx.fillStyle = "rgba(222, 233, 242, 0.46)";
-  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-  ctx.fillText("WORLD SPACE", 24, height - 24);
-  ctx.restore();
-}
-
-function drawGrid(ctx, width, height, origin, scale, camera) {
-  const step = clamp(scale, 24, 88);
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.05)";
-  ctx.lineWidth = 1;
-
-  for (let x = ((origin.x - camera.x * scale) % step + step) % step; x < width; x += step) {
+  drawOrigin(ctx) {
+    const p = this.worldToScreen(0, 0);
+    if (p.x < -20 || p.x > this.cssWidth + 20 || p.y < -20 || p.y > this.cssHeight + 20) return;
+    ctx.save();
+    ctx.fillStyle = "#eefbff";
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(238,251,255,0.5)";
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.fillText("O", p.x + 8, p.y - 8);
+    ctx.restore();
   }
-  for (let y = ((origin.y + camera.y * scale) % step + step) % step; y < height; y += step) {
+
+  drawVector2(ctx, ax, ay, bx, by, color, label, options = {}) {
+    const a = this.worldToScreen(ax, ay);
+    const b = this.worldToScreen(bx, by);
+    this.drawArrow(ctx, a.x, a.y, b.x, b.y, color, options.width ?? 3, options.dash);
+    if (label) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      this.label(ctx, label, b.x + nx * 12, b.y + ny * 12, color);
+    }
+    if (options.handle !== false) this.drawHandle(ctx, b, color, options.selected);
+    return { a, b };
+  }
+
+  drawArrow(ctx, x1, y1, x2, y2, color, width = 3, dash = null) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const ux = dx / len;
+    const uy = dy / len;
+    const size = Math.min(18, Math.max(9, width * 3.2));
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    if (dash) ctx.setLineDash(dash);
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * size - uy * size * 0.55, y2 - uy * size + ux * size * 0.55);
+    ctx.lineTo(x2 - ux * size + uy * size * 0.55, y2 - uy * size - ux * size * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
-  ctx.restore();
-}
 
-function drawAxes(ctx, width, height, origin) {
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.2)";
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(0, origin.y);
-  ctx.lineTo(width, origin.y);
-  ctx.moveTo(origin.x, 0);
-  ctx.lineTo(origin.x, height);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(222,233,242,0.65)";
-  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-  ctx.fillText("x", width - 22, origin.y - 8);
-  ctx.fillText("y", origin.x + 10, 22);
-  ctx.restore();
-}
+  drawHandle(ctx, p, color, selected = false) {
+    ctx.save();
+    ctx.fillStyle = "#06080b";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = selected ? 3.5 : 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, selected ? 9 : 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (selected) {
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
-function drawBasics(ctx, toScreen, scene) {
-  const point = toScreen(scene.point.x, scene.point.y);
-  const origin = toScreen(0, 0);
-  drawArrow(ctx, origin, point, "#61d7ff", 4);
-  drawPoint(ctx, point, "#61d7ff", 7);
-  drawDashed(ctx, toScreen(scene.point.x, 0), point, "rgba(97,215,255,0.35)");
-  drawDashed(ctx, toScreen(0, scene.point.y), point, "rgba(97,215,255,0.35)");
-  text(ctx, `A (${scene.point.x.toFixed(1)}, ${scene.point.y.toFixed(1)})`, point.x + 14, point.y - 14, "#dceff7", 14, true);
-  const magnitude = Math.hypot(scene.point.x, scene.point.y);
-  const angle = Math.atan2(scene.point.y, scene.point.x) * 180 / Math.PI;
-  drawInfo(ctx, [
-    ["POSITION VECTOR", `A = ${scene.point.x.toFixed(1)}i + ${scene.point.y.toFixed(1)}j`],
-    ["MAGNITUDE", magnitude.toFixed(2)],
-    ["DIRECTION", `${angle.toFixed(1)}°`],
-  ]);
-}
+  label(ctx, text, x, y, color = "#fff", size = 14) {
+    ctx.save();
+    ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.fillStyle = color;
+    ctx.shadowColor = "rgba(0,0,0,0.75)";
+    ctx.shadowBlur = 8;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
 
-function drawTypes(ctx, toScreen, scene) {
-  const origin = toScreen(0, 0);
-  const [a, b] = scene.vectors;
-  const A = toScreen(a.x, a.y);
-  const B = toScreen(b.x, b.y);
-  drawArrow(ctx, origin, A, a.colour, 4);
-  drawArrow(ctx, origin, B, b.colour, 4);
-  drawPoint(ctx, A, a.colour, 6);
-  drawPoint(ctx, B, b.colour, 6);
-  text(ctx, `A · ${Math.hypot(a.x, a.y).toFixed(2)}`, A.x + 10, A.y - 10, a.colour, 14, true);
-  text(ctx, `B · ${Math.hypot(b.x, b.y).toFixed(2)}`, B.x + 10, B.y + 20, b.colour, 14, true);
-  const cross = a.x * b.y - a.y * b.x;
-  const ratio = a.x !== 0 ? b.x / a.x : null;
-  const angle = angleBetween(a, b);
-  drawInfo(ctx, [
-    ["LENGTHS", `${Math.hypot(a.x, a.y).toFixed(2)} · ${Math.hypot(b.x, b.y).toFixed(2)}`],
-    ["ANGLE", `${angle.toFixed(1)}°`],
-    ["COLLINEAR?", Math.abs(cross) < 0.1 ? "YES" : "NO"],
-    ["SAME DIRECTION?", ratio != null && ratio > 0 && Math.abs(cross) < 0.1 ? "YES" : "NO"],
-  ]);
-}
+  drawPill(ctx, text, x, y, color) {
+    ctx.save();
+    ctx.font = "700 11px ui-monospace, monospace";
+    const width = ctx.measureText(text).width + 18;
+    ctx.fillStyle = "rgba(6,8,11,0.88)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y - 16, width, 26, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#f2fbff";
+    ctx.fillText(text, x + 9, y + 1);
+    ctx.restore();
+  }
 
-function drawAddition(ctx, toScreen, scene) {
-  const origin = toScreen(0, 0);
-  const [a, b] = scene.vectors;
-  const A = toScreen(a.x, a.y);
-  const B = toScreen(b.x, b.y);
-  const R = toScreen(a.x + b.x, a.y + b.y);
-  const tailB = A;
-  const opposite = toScreen(b.x, b.y);
+  renderBasics(ctx) {
+    const v = this.data.basics;
+    const origin = this.project3D(0, 0, 0);
+    const end = this.project3D(v.x, v.y, v.z);
+    const xy = this.project3D(v.x, v.y, 0);
+    const xAxis = this.project3D(2.2, 0, 0);
+    const yAxis = this.project3D(0, 2.2, 0);
+    const zAxis = this.project3D(0, 0, 2.2);
 
-  drawDashed(ctx, B, R, "rgba(255,191,99,0.55)");
-  drawDashed(ctx, A, R, "rgba(97,215,255,0.55)");
-  drawArrow(ctx, origin, A, a.colour, 4.5);
-  drawArrow(ctx, A, R, b.colour, 4.5);
-  drawArrow(ctx, origin, R, "#82ff9a", 6);
-  drawPoint(ctx, A, a.colour, 7);
-  drawPoint(ctx, B, b.colour, 7);
-  drawPoint(ctx, R, "#82ff9a", 8);
+    ctx.save();
+    this.drawArrow(ctx, origin.x, origin.y, xAxis.x, xAxis.y, "rgba(255,255,255,0.35)", 2);
+    this.drawArrow(ctx, origin.x, origin.y, yAxis.x, yAxis.y, "rgba(255,255,255,0.35)", 2);
+    this.drawArrow(ctx, origin.x, origin.y, zAxis.x, zAxis.y, "rgba(255,255,255,0.35)", 2);
+    this.label(ctx, "x", xAxis.x + 7, xAxis.y + 3, "rgba(255,255,255,0.5)", 12);
+    this.label(ctx, "y", yAxis.x - 18, yAxis.y + 3, "rgba(255,255,255,0.5)", 12);
+    this.label(ctx, "z", zAxis.x + 8, zAxis.y - 2, "rgba(255,255,255,0.5)", 12);
 
-  text(ctx, "A", A.x + 12, A.y - 12, a.colour, 16, true);
-  text(ctx, "B", R.x + 12, R.y + 18, b.colour, 16, true);
-  text(ctx, "R = A + B", (origin.x + R.x) / 2 + 12, (origin.y + R.y) / 2 - 8, "#82ff9a", 15, true);
-  text(ctx, "parallelogram construction", B.x + 16, B.y - 14, "rgba(222,233,242,0.55)", 12, false);
+    this.drawVector3(ctx, 0, 0, 0, v.x, v.y, v.z, "#61d7ff", "A", this.drag?.id === "A-xy" || this.drag?.id === "A-z");
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(end.x, end.y);
+    ctx.lineTo(xy.x, xy.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-  const rx = a.x + b.x;
-  const ry = a.y + b.y;
-  drawInfo(ctx, [
-    ["A", `(${a.x.toFixed(1)}, ${a.y.toFixed(1)})`],
-    ["B", `(${b.x.toFixed(1)}, ${b.y.toFixed(1)})`],
-    ["RESULTANT", `(${rx.toFixed(1)}, ${ry.toFixed(1)})`],
-    ["|R|", Math.hypot(rx, ry).toFixed(2)],
-    ["∠R", `${(Math.atan2(ry, rx) * 180 / Math.PI).toFixed(1)}°`],
-  ]);
-  void tailB;
-  void opposite;
-}
+    this.drawHandle(ctx, end, "#61d7ff", this.drag?.id === "A-xy");
+    this.drawHandle(ctx, { x: end.x, y: end.y - this.screenScale() }, "#9aa8b3", this.drag?.id === "A-z");
+    this.label(ctx, "z", end.x + 11, end.y - this.screenScale() - 8, "#9aa8b3", 11);
+    this.drawPill(ctx, `A = (${fmt(v.x)}, ${fmt(v.y)}, ${fmt(v.z)})`, end.x + 20, end.y - 8, "#61d7ff");
+    ctx.restore();
+  }
 
-function drawScalar(ctx, toScreen, scene) {
-  const origin = toScreen(0, 0);
-  const base = scene.vectors[0];
-  const baseEnd = toScreen(base.x, base.y);
-  const scaled = toScreen(base.x * scene.lambda, base.y * scene.lambda);
-  drawArrow(ctx, origin, baseEnd, "rgba(97,215,255,0.4)", 3);
-  drawArrow(ctx, origin, scaled, "#61d7ff", 6);
-  drawPoint(ctx, baseEnd, "rgba(97,215,255,0.5)", 5);
-  drawPoint(ctx, scaled, "#61d7ff", 8);
-  text(ctx, "A", baseEnd.x + 10, baseEnd.y - 10, "rgba(205,235,243,0.8)", 14, true);
-  text(ctx, `λA  (λ = ${scene.lambda.toFixed(2)})`, scaled.x + 12, scaled.y - 14, "#61d7ff", 15, true);
+  drawVector3(ctx, ax, ay, az, bx, by, bz, color, label, selected = false, dash = null) {
+    const a = this.project3D(ax, ay, az);
+    const b = this.project3D(bx, by, bz);
+    this.drawArrow(ctx, a.x, a.y, b.x, b.y, color, 3.2, dash);
+    this.drawHandle(ctx, b, color, selected);
+    this.label(ctx, label, b.x + 10, b.y - 10, color);
+    return { a, b };
+  }
 
-  const sign = scene.lambda > 0.001 ? "same direction" : scene.lambda < -0.001 ? "opposite direction" : "zero vector";
-  drawScalarRail(ctx, scene.lambda);
-  drawInfo(ctx, [
-    ["SCALAR λ", scene.lambda.toFixed(2)],
-    ["RESULT", sign],
-    ["MAGNITUDE", `${(Math.abs(scene.lambda) * Math.hypot(base.x, base.y)).toFixed(2)} units`],
-  ]);
-}
+  renderTypes(ctx) {
+    const v = this.data.types;
+    this.drawVector2(ctx, 0, 0, v.ax, v.ay, "#61d7ff", "A", { selected: this.drag?.id === "A" });
+    this.drawVector2(ctx, -4.2, -2.4, -4.2 + v.bx, -2.4 + v.by, "#ffbd59", "B", { selected: this.drag?.id === "B" });
+    const aEnd = this.worldToScreen(v.ax, v.ay);
+    const bStart = this.worldToScreen(-4.2, -2.4);
+    const bEnd = this.worldToScreen(-4.2 + v.bx, -2.4 + v.by);
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.setLineDash([6, 7]);
+    ctx.beginPath();
+    ctx.moveTo(bStart.x, bStart.y);
+    ctx.lineTo(bEnd.x, bEnd.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    this.drawPill(ctx, `|A| = ${fmt(magnitude2(v.ax, v.ay))}`, aEnd.x + 16, aEnd.y - 6, "#61d7ff");
+    this.drawPill(ctx, `|B| = ${fmt(magnitude2(v.bx, v.by))}`, bEnd.x + 16, bEnd.y - 6, "#ffbd59");
+    ctx.restore();
+  }
 
-function drawScalarRail(ctx, lambda) {
-  const x = 36;
-  const y = ctx.canvas.height / (window.devicePixelRatio || 1) - 82;
-  const w = 330;
-  const left = x;
-  const right = x + w;
-  const zero = left + w / 2;
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(left, y);
-  ctx.lineTo(right, y);
-  ctx.stroke();
-  const knob = zero + (clamp(lambda, -3, 3) / 3) * (w / 2);
-  ctx.fillStyle = "#61d7ff";
-  ctx.beginPath();
-  ctx.arc(knob, y, 7, 0, Math.PI * 2);
-  ctx.fill();
-  text(ctx, "−3", left, y + 24, "rgba(222,233,242,0.45)", 11, false);
-  text(ctx, "0", zero - 4, y + 24, "rgba(222,233,242,0.6)", 11, false);
-  text(ctx, "+3", right - 16, y + 24, "rgba(222,233,242,0.45)", 11, false);
-  ctx.restore();
-}
+  renderAddition(ctx) {
+    const v = this.data.addition;
+    const rx = v.ax + v.bx;
+    const ry = v.ay + v.by;
+    this.drawVector2(ctx, 0, 0, v.ax, v.ay, "#61d7ff", "A", { selected: this.drag?.id === "A" });
+    this.drawVector2(ctx, 0, 0, v.bx, v.by, "rgba(255,189,89,0.6)", "B", { handle: false, dash: [7, 7] });
+    this.drawVector2(ctx, v.ax, v.ay, rx, ry, "#ffbd59", "B", { selected: this.drag?.id === "B" });
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.setLineDash([7, 7]);
+    const a = this.worldToScreen(v.ax, v.ay);
+    const b = this.worldToScreen(v.bx, v.by);
+    const r = this.worldToScreen(rx, ry);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(r.x, r.y);
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(r.x, r.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    this.drawArrow(ctx, this.worldToScreen(0, 0).x, this.worldToScreen(0, 0).y, r.x, r.y, "#82ff9a", 4);
+    this.drawHandle(ctx, this.worldToScreen(v.ax, v.ay), "#61d7ff", this.drag?.id === "A");
+    this.drawHandle(ctx, this.worldToScreen(v.bx, v.by), "#ffbd59", this.drag?.id === "B");
+    this.drawPill(ctx, `R = (${fmt(rx)}, ${fmt(ry)})`, r.x + 18, r.y - 8, "#82ff9a");
+    ctx.restore();
+  }
 
-function drawSection(ctx, toScreen, scene) {
-  const P = toScreen(scene.p.x, scene.p.y);
-  const Q = toScreen(scene.q.x, scene.q.y);
-  const denominator = scene.ratio + 1;
-  const r = {
-    x: (scene.ratio * scene.q.x + scene.p.x) / denominator,
-    y: (scene.ratio * scene.q.y + scene.p.y) / denominator,
-  };
-  const R = toScreen(r.x, r.y);
-  drawDashed(ctx, P, Q, "rgba(255,255,255,0.28)");
-  drawPoint(ctx, P, "#61d7ff", 8);
-  drawPoint(ctx, Q, "#ffbf63", 8);
-  drawPoint(ctx, R, "#82ff9a", 9);
-  text(ctx, "P", P.x + 10, P.y - 12, "#61d7ff", 15, true);
-  text(ctx, "Q", Q.x + 10, Q.y - 12, "#ffbf63", 15, true);
-  text(ctx, "R", R.x + 10, R.y - 12, "#82ff9a", 15, true);
-  drawRatioBar(ctx, scene.ratio);
-  drawInfo(ctx, [
-    ["RATIO m:n", `${scene.ratio.toFixed(1)}:1`],
-    ["R", `(${r.x.toFixed(2)}, ${r.y.toFixed(2)})`],
-    ["MIDPOINT", scene.ratio === 1 ? "YES" : "NO"],
-  ]);
-}
+  renderScalar(ctx) {
+    const v = this.data.scalar;
+    const sx = v.ax * v.lambda;
+    const sy = v.ay * v.lambda;
+    const origin = this.worldToScreen(0, 0);
+    const a = this.worldToScreen(v.ax, v.ay);
+    const s = this.worldToScreen(sx, sy);
+    this.drawVector2(ctx, 0, 0, v.ax, v.ay, "#61d7ff", "A", { selected: this.drag?.id === "A" });
+    this.drawVector2(ctx, 0, 0, sx, sy, "#82ff9a", "λA", { selected: this.drag?.id === "S" });
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.setLineDash([5, 7]);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(s.x, s.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    this.drawPill(ctx, `λ = ${fmt(v.lambda, 2)}`, s.x + 18, s.y - 8, "#82ff9a");
+    if (v.lambda < -0.05) {
+      this.label(ctx, "opposite direction", origin.x + 16, origin.y + 34, "#ff8e8e", 11);
+    } else if (Math.abs(v.lambda) < 0.05) {
+      this.label(ctx, "zero vector", origin.x + 16, origin.y + 34, "#c8d6df", 11);
+    }
+    ctx.restore();
+  }
 
-function drawRatioBar(ctx, ratio) {
-  const x = 36;
-  const y = ctx.canvas.height / (window.devicePixelRatio || 1) - 82;
-  const w = 300;
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.18)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + w, y);
-  ctx.stroke();
-  const knob = x + clamp((ratio - 0.5) / 5.5, 0, 1) * w;
-  ctx.fillStyle = "#82ff9a";
-  ctx.beginPath();
-  ctx.arc(knob, y, 7, 0, Math.PI * 2);
-  ctx.fill();
-  text(ctx, "0.5:1", x, y + 24, "rgba(222,233,242,0.45)", 11, false);
-  text(ctx, "3:1", x + w * 0.45, y + 24, "rgba(222,233,242,0.6)", 11, false);
-  text(ctx, "6:1", x + w - 22, y + 24, "rgba(222,233,242,0.45)", 11, false);
-  ctx.restore();
-}
+  renderSection(ctx) {
+    const v = this.data.section;
+    const rx = v.px + (v.qx - v.px) * v.t;
+    const ry = v.py + (v.qy - v.py) * v.t;
+    const p = this.worldToScreen(v.px, v.py);
+    const q = this.worldToScreen(v.qx, v.qy);
+    const r = this.worldToScreen(rx, ry);
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.32)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+    ctx.setLineDash([5, 7]);
+    ctx.strokeStyle = "rgba(255,189,89,0.45)";
+    ctx.beginPath();
+    ctx.moveTo(this.worldToScreen(0, 0).x, this.worldToScreen(0, 0).y);
+    ctx.lineTo(r.x, r.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    this.drawHandle(ctx, p, "#61d7ff", this.drag?.id === "P");
+    this.drawHandle(ctx, q, "#ffbd59", this.drag?.id === "Q");
+    this.drawHandle(ctx, r, "#82ff9a", this.drag?.id === "R");
+    this.label(ctx, "P", p.x + 10, p.y - 10, "#61d7ff");
+    this.label(ctx, "Q", q.x + 10, q.y - 10, "#ffbd59");
+    this.label(ctx, "R", r.x + 10, r.y - 10, "#82ff9a");
+    const ratio = v.t >= 0.5 ? `${fmt(v.t / (1 - v.t || 1))} : 1` : `1 : ${fmt((1 - v.t) / (v.t || 1))}`;
+    this.drawPill(ctx, `PR:RQ = ${ratio}`, r.x + 20, r.y + 26, "#82ff9a");
+    ctx.restore();
+  }
 
-function drawDot(ctx, toScreen, scene) {
-  const origin = toScreen(0, 0);
-  const [a, b] = scene.vectors;
-  const A = toScreen(a.x, a.y);
-  const B = toScreen(b.x, b.y);
-  const dot = a.x * b.x + a.y * b.y;
-  const angle = angleBetween(a, b);
-  const bLength = Math.hypot(b.x, b.y);
-  const projectionLength = bLength ? dot / bLength : 0;
-  const proj = bLength ? { x: b.x / bLength * projectionLength, y: b.y / bLength * projectionLength } : { x: 0, y: 0 };
-  const projPoint = toScreen(proj.x, proj.y);
+  renderDot(ctx) {
+    const v = this.data.dot;
+    const origin = this.worldToScreen(0, 0);
+    const a = this.worldToScreen(v.ax, v.ay);
+    const b = this.worldToScreen(v.bx, v.by);
+    const am = magnitude2(v.ax, v.ay);
+    const footScale = am ? dot2(v.bx, v.by, v.ax, v.ay) / (am * am) : 0;
+    const foot = this.worldToScreen(v.ax * footScale, v.ay * footScale);
+    this.drawVector2(ctx, 0, 0, v.ax, v.ay, "#61d7ff", "A", { selected: this.drag?.id === "A" });
+    this.drawVector2(ctx, 0, 0, v.bx, v.by, "#ffbd59", "B", { selected: this.drag?.id === "B" });
+    ctx.save();
+    ctx.strokeStyle = "rgba(130,255,154,0.7)";
+    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(foot.x, foot.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#82ff9a";
+    ctx.beginPath();
+    ctx.arc(foot.x, foot.y, 5, 0, Math.PI * 2);
+    ctx.fill();
 
-  drawArrow(ctx, origin, A, a.colour, 4.5);
-  drawArrow(ctx, origin, B, b.colour, 4.5);
-  drawDashed(ctx, A, projPoint, "rgba(130,255,154,0.6)");
-  drawArrow(ctx, origin, projPoint, "#82ff9a", 4);
-  drawPoint(ctx, A, a.colour, 7);
-  drawPoint(ctx, B, b.colour, 7);
-  drawPoint(ctx, projPoint, "#82ff9a", 6);
-  drawAngleArc(ctx, origin, a, b, Math.min(0.72 * Math.min(ctx.canvas.width, ctx.canvas.height), 82));
-  text(ctx, `A · B = ${dot.toFixed(2)}`, 34, 150, "#82ff9a", 18, true);
-  text(ctx, `θ = ${angle.toFixed(1)}°`, 34, 178, "rgba(222,233,242,0.72)", 13, false);
-  text(ctx, "projection of A on B", projPoint.x + 12, projPoint.y - 10, "#82ff9a", 13, true);
+    const theta = angle2(v.ax, v.ay, v.bx, v.by);
+    const radius = Math.min(80, am * this.screenScale() * 0.42);
+    const start = Math.atan2(-v.ay, v.ax);
+    const end = Math.atan2(-v.by, v.bx);
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(origin.x, origin.y, radius, start, end, false);
+    ctx.stroke();
+    this.drawPill(ctx, `θ = ${fmt(deg(theta), 1)}°`, origin.x + radius * 0.65, origin.y - radius * 0.55, "#f2fbff");
+    ctx.restore();
+  }
 
-  const sign = dot > 0.05 ? "positive" : dot < -0.05 ? "negative" : "zero";
-  drawInfo(ctx, [
-    ["DOT PRODUCT", dot.toFixed(2)],
-    ["ANGLE", `${angle.toFixed(1)}°`],
-    ["SIGN", sign],
-    ["PROJECTION", `${projectionLength.toFixed(2)} units`],
-  ]);
-}
+  renderCross(ctx) {
+    const v = this.data.cross;
+    const A = { x: v.ax, y: v.ay, z: v.az };
+    const B = { x: v.bx, y: v.by, z: v.bz };
+    const C = cross3(A, B);
+    const origin = this.project3D(0, 0, 0);
+    const a = this.project3D(v.ax, v.ay, v.az);
+    const b = this.project3D(v.bx, v.by, v.bz);
+    const sum = this.project3D(v.ax + v.bx, v.ay + v.by, v.az + v.bz);
+    const cMag = magnitude3(C.x, C.y, C.z);
+    const cScale = cMag > 5 ? 5 / cMag : 1;
+    const c = this.project3D(C.x * cScale, C.y * cScale, C.z * cScale);
 
-function drawCross(ctx, toScreen, scene, origin, worldScale) {
-  const [a2, b2] = scene.vectors;
-  const a = { x: a2.x, y: a2.y, z: a2.z };
-  const b = { x: b2.x, y: b2.y, z: b2.z };
-  const A = project3D(a.x, a.y, a.z);
-  const B = project3D(b.x, b.y, b.z);
-  const R = project3D(
-    a.y * b.z - a.z * b.y,
-    a.z * b.x - a.x * b.z,
-    a.x * b.y - a.y * b.x,
-  );
+    ctx.save();
+    this.drawAxis3D(ctx);
+    this.drawArrow(ctx, origin.x, origin.y, a.x, a.y, "#61d7ff", 3.2);
+    this.drawArrow(ctx, origin.x, origin.y, b.x, b.y, "#ffbd59", 3.2);
+    this.drawArrow(ctx, origin.x, origin.y, c.x, c.y, "#82ff9a", 4, [8, 6]);
 
-  const originScreen = toScreen(0, 0);
-  const aScreen = { x: originScreen.x + A.x * worldScale, y: originScreen.y - A.y * worldScale };
-  const bScreen = { x: originScreen.x + B.x * worldScale, y: originScreen.y - B.y * worldScale };
-  const rScale = Math.min(1.5, 0.28 + Math.hypot(R.x, R.y) * 0.2);
-  const rScreen = { x: originScreen.x + R.x * worldScale * rScale, y: originScreen.y - R.y * worldScale * rScale };
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.setLineDash([6, 7]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(sum.x, sum.y);
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(sum.x, sum.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-  drawPlaneAxes(ctx, originScreen, worldScale);
-  drawArrow(ctx, originScreen, aScreen, a2.colour, 4.5);
-  drawArrow(ctx, originScreen, bScreen, b2.colour, 4.5);
-  drawArrow(ctx, originScreen, rScreen, "#82ff9a", 6);
-  drawPoint(ctx, aScreen, a2.colour, 7);
-  drawPoint(ctx, bScreen, b2.colour, 7);
-  drawPoint(ctx, rScreen, "#82ff9a", 8);
-  text(ctx, "A", aScreen.x + 10, aScreen.y - 10, a2.colour, 15, true);
-  text(ctx, "B", bScreen.x + 10, bScreen.y - 10, b2.colour, 15, true);
-  text(ctx, "A × B", rScreen.x + 10, rScreen.y - 12, "#82ff9a", 15, true);
+    this.drawHandle(ctx, a, "#61d7ff", this.drag?.id === "A-xy");
+    this.drawHandle(ctx, { x: a.x, y: a.y - this.screenScale() }, "#9aa8b3", this.drag?.id === "A-z");
+    this.drawHandle(ctx, b, "#ffbd59", this.drag?.id === "B-xy");
+    this.drawHandle(ctx, { x: b.x, y: b.y - this.screenScale() }, "#9aa8b3", this.drag?.id === "B-z");
+    this.label(ctx, "A", a.x + 10, a.y - 10, "#61d7ff");
+    this.label(ctx, "B", b.x + 10, b.y - 10, "#ffbd59");
+    this.label(ctx, "A × B", c.x + 12, c.y - 12, "#82ff9a");
+    this.label(ctx, "z", a.x + 10, a.y - this.screenScale() - 8, "#9aa8b3", 11);
+    this.label(ctx, "z", b.x + 10, b.y - this.screenScale() - 8, "#9aa8b3", 11);
+    this.drawPill(ctx, `|A × B| = ${fmt(cMag)}`, origin.x + 24, origin.y + 48, "#82ff9a");
+    this.drawPill(ctx, "green = perpendicular vector", origin.x + 24, origin.y + 80, "#82ff9a");
+    ctx.restore();
+  }
 
-  const magnitude = Math.hypot(R.x, R.y, R.z);
-  const area = magnitude;
-  drawInfo(ctx, [
-    ["A × B", `(${R.x.toFixed(2)}, ${R.y.toFixed(2)}, ${R.z.toFixed(2)})`],
-    ["|A × B|", magnitude.toFixed(2)],
-    ["PARALLELOGRAM AREA", area.toFixed(2)],
-    ["TRIANGLE AREA", (area / 2).toFixed(2)],
-    ["VIEW", "oblique 3D projection"],
-  ]);
-}
-
-function drawPlaneAxes(ctx, origin, scale) {
-  const xEnd = { x: origin.x + scale * 3.7, y: origin.y + scale * 1.2 };
-  const yEnd = { x: origin.x - scale * 2.7, y: origin.y + scale * 1.8 };
-  const zEnd = { x: origin.x, y: origin.y - scale * 3.5 };
-  drawArrow(ctx, origin, xEnd, "rgba(255,255,255,0.32)", 2);
-  drawArrow(ctx, origin, yEnd, "rgba(255,255,255,0.24)", 2);
-  drawArrow(ctx, origin, zEnd, "rgba(255,255,255,0.3)", 2);
-  text(ctx, "x", xEnd.x + 8, xEnd.y + 4, "rgba(222,233,242,0.6)", 12, false);
-  text(ctx, "y", yEnd.x - 16, yEnd.y + 4, "rgba(222,233,242,0.6)", 12, false);
-  text(ctx, "z", zEnd.x + 8, zEnd.y - 4, "rgba(222,233,242,0.6)", 12, false);
-}
-
-function project3D(x, y, z) {
-  return {
-    x: x + y * 0.55,
-    y: z + (x + y) * 0.28,
-  };
-}
-
-function drawArrow(ctx, from, to, colour, width) {
-  const angle = Math.atan2(to.y - from.y, to.x - from.x);
-  const size = Math.max(10, width * 2.6);
-  ctx.save();
-  ctx.strokeStyle = colour;
-  ctx.fillStyle = colour;
-  ctx.lineWidth = width;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(from.x, from.y);
-  ctx.lineTo(to.x, to.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(to.x, to.y);
-  ctx.lineTo(to.x - size * Math.cos(angle - Math.PI / 6), to.y - size * Math.sin(angle - Math.PI / 6));
-  ctx.lineTo(to.x - size * Math.cos(angle + Math.PI / 6), to.y - size * Math.sin(angle + Math.PI / 6));
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawPoint(ctx, point, colour, radius) {
-  ctx.save();
-  ctx.fillStyle = colour;
-  ctx.shadowColor = colour;
-  ctx.shadowBlur = 14;
-  ctx.beginPath();
-  ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawDashed(ctx, from, to, colour) {
-  ctx.save();
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = 1.3;
-  ctx.setLineDash([7, 6]);
-  ctx.beginPath();
-  ctx.moveTo(from.x, from.y);
-  ctx.lineTo(to.x, to.y);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawAngleArc(ctx, origin, a, b, radius) {
-  const start = Math.atan2(a.y, a.x);
-  const end = Math.atan2(b.y, b.x);
-  let delta = end - start;
-  if (delta > Math.PI) delta -= Math.PI * 2;
-  if (delta < -Math.PI) delta += Math.PI * 2;
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.arc(origin.x, origin.y, radius, start, start + delta, delta < 0);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawInfo(ctx, rows) {
-  const width = 280;
-  const height = 78 + rows.length * 30;
-  const x = ctx.canvas.width / (window.devicePixelRatio || 1) - width - 26;
-  const y = 112;
-  ctx.save();
-  ctx.fillStyle = "rgba(10,14,19,0.84)";
-  ctx.strokeStyle = "rgba(255,255,255,0.09)";
-  ctx.lineWidth = 1;
-  roundRect(ctx, x, y, width, height, 18);
-  ctx.fill();
-  ctx.stroke();
-  text(ctx, "LIVE VALUES", x + 18, y + 24, "rgba(222,233,242,0.48)", 10, true);
-  rows.forEach(([label, value], index) => {
-    const rowY = y + 50 + index * 30;
-    text(ctx, label, x + 18, rowY, "rgba(222,233,242,0.5)", 10, false);
-    text(ctx, String(value), x + 112, rowY, "#e9f7ff", 12, true);
-  });
-  ctx.restore();
-}
-
-function roundRect(ctx, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + width, y, x + width, y + height, r);
-  ctx.arcTo(x + width, y + height, x, y + height, r);
-  ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
-  ctx.closePath();
-}
-
-function text(ctx, value, x, y, colour, size, bold) {
-  ctx.save();
-  ctx.fillStyle = colour;
-  ctx.font = `${bold ? 650 : 450} ${size}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
-  ctx.textBaseline = "middle";
-  ctx.fillText(value, x, y);
-  ctx.restore();
-}
-
-function distance(x1, y1, x2, y2) {
-  return Math.hypot(x1 - x2, y1 - y2);
-}
-
-function angleBetween(a, b) {
-  const dot = a.x * b.x + a.y * b.y;
-  const denominator = Math.hypot(a.x, a.y) * Math.hypot(b.x, b.y);
-  if (!denominator) return 0;
-  return Math.acos(clamp(dot / denominator, -1, 1)) * 180 / Math.PI;
+  drawAxis3D(ctx) {
+    const o = this.project3D(0, 0, 0);
+    const x = this.project3D(2.1, 0, 0);
+    const y = this.project3D(0, 2.1, 0);
+    const z = this.project3D(0, 0, 2.1);
+    this.drawArrow(ctx, o.x, o.y, x.x, x.y, "rgba(255,255,255,0.27)", 2);
+    this.drawArrow(ctx, o.x, o.y, y.x, y.y, "rgba(255,255,255,0.27)", 2);
+    this.drawArrow(ctx, o.x, o.y, z.x, z.y, "rgba(255,255,255,0.27)", 2);
+    this.label(ctx, "x", x.x + 7, x.y + 3, "rgba(255,255,255,0.45)", 11);
+    this.label(ctx, "y", y.x - 18, y.y + 3, "rgba(255,255,255,0.45)", 11);
+    this.label(ctx, "z", z.x + 8, z.y - 4, "rgba(255,255,255,0.45)", 11);
+  }
 }
