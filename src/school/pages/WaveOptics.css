@@ -1,0 +1,789 @@
+.wave-page {
+  --bg: #05080d;
+  --panel: #0b1119;
+  --panel-2: #101923;
+  --border: #273544;
+
+  --text: #ffffff;
+  --muted: #c3cfda;
+  --subtle: #91a2b2;
+
+  --accent: #39c8ff;
+  --accent-dark: #123e51;
+
+  min-height: 100%;
+  padding: 28px;
+  color: var(--text);
+  background:
+    radial-gradient(
+      circle at 75% 0%,
+      #142536 0,
+      transparent 38%
+    ),
+    var(--bg);
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* ---------- HEADER ---------- */
+
+.wave-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.wave-kicker,
+.panel-heading > div > span,
+.result-card > span,
+.rule-card > span,
+.formula-card > span,
+.concept-page > span,
+.predict-page > span {
+  display: block;
+
+  color: var(--accent);
+
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.wave-header h1 {
+  margin: 3px 0 0;
+
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.wave-header p {
+  margin: 7px 0 0;
+
+  color: var(--muted);
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.reset-button {
+  min-height: 48px;
+  padding: 0 18px;
+
+  border: 1px solid #3a4d5f;
+  border-radius: 12px;
+
+  color: white;
+  background: #101a25;
+
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  background: #172431;
+}
+
+/* ---------- NAV ---------- */
+
+.wave-nav {
+  display: flex;
+  gap: 6px;
+
+  width: fit-content;
+  padding: 5px;
+
+  margin-bottom: 18px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: #0b1118;
+}
+
+.wave-nav button {
+  min-height: 48px;
+  padding: 0 24px;
+
+  border: 0;
+  border-radius: 10px;
+
+  color: #c6d1db;
+  background: transparent;
+
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wave-nav button.active {
+  color: white;
+  background: #1a4257;
+}
+
+/* ---------- MAIN EXPERIMENT ---------- */
+
+.experiment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 18px;
+}
+
+.experiment-panel,
+.result-card,
+.rule-card,
+.formula-card,
+.concept-page,
+.predict-page {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(11, 17, 25, 0.96);
+}
+
+.experiment-panel {
+  overflow: hidden;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+
+  padding: 22px 24px;
+}
+
+.panel-heading h2 {
+  margin: 5px 0 0;
+
+  font-size: clamp(20px, 2vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+.laser-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 13px;
+
+  border: 1px solid #344655;
+  border-radius: 10px;
+
+  color: #e9f4fc;
+  background: #0e1721;
+
+  font-weight: 800;
+}
+
+.laser-indicator i {
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+
+  background: var(--laser);
+
+  box-shadow:
+    0 0 8px var(--laser),
+    0 0 18px var(--laser);
+}
+
+/* ---------- OPTICAL STAGE ---------- */
+
+.experiment-stage {
+  display: grid;
+  grid-template-columns: 100px minmax(300px, 1fr) 145px;
+  align-items: center;
+  gap: 15px;
+
+  min-height: 340px;
+
+  padding: 20px;
+}
+
+.source-column {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+
+  color: var(--muted);
+  text-align: center;
+}
+
+.source-column strong {
+  font-size: 13px;
+}
+
+.source-column small {
+  color: var(--subtle);
+  font-size: 11px;
+}
+
+.laser {
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  background: var(--laser);
+
+  box-shadow:
+    0 0 15px var(--laser),
+    0 0 35px color-mix(
+      in srgb,
+      var(--laser) 60%,
+      transparent
+    );
+}
+
+/* ---------- WAVE AREA ---------- */
+
+.wave-zone {
+  position: relative;
+
+  height: 285px;
+
+  overflow: hidden;
+
+  border: 1px solid #344a5d;
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #09121c,
+      #0d1a27
+    );
+}
+
+.incoming-waves,
+.outgoing-waves {
+  position: absolute;
+  inset: 0;
+
+  overflow: hidden;
+}
+
+.incoming-waves span {
+  position: absolute;
+
+  left: -35px;
+  top: 50%;
+
+  width: 105px;
+  height: 105px;
+
+  border: 2px solid;
+
+  border-radius: 50%;
+
+  transform: translateY(-50%);
+
+  opacity: 0.55;
+
+  animation: incoming-wave 3s linear infinite;
+}
+
+.incoming-waves span:nth-child(1) { top: 20%; }
+.incoming-waves span:nth-child(2) { top: 30%; }
+.incoming-waves span:nth-child(3) { top: 40%; }
+.incoming-waves span:nth-child(4) { top: 50%; }
+.incoming-waves span:nth-child(5) { top: 60%; }
+.incoming-waves span:nth-child(6) { top: 70%; }
+.incoming-waves span:nth-child(7) { top: 80%; }
+
+@keyframes incoming-wave {
+  from {
+    transform: translateX(0) translateY(-50%);
+    opacity: 0.45;
+  }
+
+  to {
+    transform: translateX(250px) translateY(-50%);
+    opacity: 0;
+  }
+}
+
+/* ---------- DOUBLE SLIT ---------- */
+
+.double-slit {
+  position: absolute;
+
+  top: 0;
+  right: 30%;
+
+  width: 14px;
+  height: 100%;
+
+  background: #8193a2;
+
+  box-shadow:
+    0 0 0 1px #b1bfca;
+}
+
+.slit-gap {
+  position: absolute;
+
+  left: -1px;
+
+  width: 16px;
+  height: 44px;
+
+  background: #09121c;
+}
+
+.slit-gap:first-child {
+  top: 88px;
+}
+
+.slit-gap:last-child {
+  top: 153px;
+}
+
+/* ---------- OUTGOING WAVES ---------- */
+
+.outgoing-waves {
+  left: 68%;
+}
+
+.outgoing-waves span {
+  position: absolute;
+
+  left: 0;
+  top: 50%;
+
+  width: 90px;
+  height: 90px;
+
+  border: 2px solid;
+
+  border-radius: 50%;
+
+  opacity: 0;
+
+  transform: translateY(-50%);
+
+  animation: outgoing-wave 3s linear infinite;
+}
+
+@keyframes outgoing-wave {
+  from {
+    transform: scale(0.2) translateY(-50%);
+    opacity: 0.6;
+  }
+
+  to {
+    transform: scale(3.4) translateY(-50%);
+    opacity: 0;
+  }
+}
+
+/* ---------- SCREEN ---------- */
+
+.screen-area {
+  height: 285px;
+
+  padding: 10px;
+
+  border-radius: 10px;
+
+  color: #15202b;
+  background: #f4f7f9;
+
+  text-align: center;
+}
+
+.screen-label {
+  color: #596977;
+
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.fringe-screen {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--fringe-space);
+
+  height: 225px;
+
+  padding: 10px 4px;
+}
+
+.fringe-screen i {
+  width: 5px;
+
+  border-radius: 5px;
+
+  background: #263746;
+}
+
+.fringe-screen i:nth-child(odd) {
+  background: #f4f7f9;
+}
+
+.fringe-screen i.central-fringe {
+  background: var(--fringe-colour);
+
+  box-shadow:
+    0 0 8px var(--fringe-colour),
+    0 0 20px color-mix(
+      in srgb,
+      var(--fringe-colour) 55%,
+      transparent
+    );
+}
+
+.screen-area small {
+  color: #566877;
+  font-weight: 700;
+}
+
+/* ---------- CONTROLS ---------- */
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  padding: 18px 22px 22px;
+
+  border-top: 1px solid #263746;
+}
+
+.wave-slider {
+  display: block;
+
+  padding: 14px;
+
+  border: 1px solid #314353;
+  border-radius: 12px;
+
+  background: #0e1721;
+}
+
+.wave-slider > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wave-slider span {
+  color: #d1dce5;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wave-slider strong {
+  color: white;
+
+  font-size: 13px;
+}
+
+.wave-slider input {
+  width: 100%;
+
+  margin-top: 15px;
+
+  accent-color: var(--accent);
+
+  min-height: 30px;
+
+  cursor: pointer;
+}
+
+/* ---------- SIDEBAR ---------- */
+
+.experiment-sidebar {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.result-card,
+.rule-card {
+  padding: 22px;
+}
+
+.result-card > strong {
+  display: block;
+
+  margin: 8px 0;
+
+  font-size: 46px;
+  line-height: 1;
+
+  letter-spacing: -0.05em;
+}
+
+.result-card > strong small {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.result-card p {
+  margin: 10px 0 0;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rule-card h3 {
+  margin: 7px 0 12px;
+
+  font-size: 19px;
+}
+
+.rule-card ul {
+  display: grid;
+  gap: 10px;
+
+  padding-left: 18px;
+  margin: 0;
+
+  color: #e4edf4;
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.formula-card {
+  width: 100%;
+
+  padding: 20px;
+
+  color: white;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.formula-card strong {
+  display: block;
+
+  margin-top: 9px;
+
+  font-size: 25px;
+}
+
+.formula-card em {
+  display: block;
+
+  margin-top: 12px;
+
+  color: var(--accent);
+
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* ---------- CONCEPT ---------- */
+
+.concept-page,
+.predict-page {
+  padding: clamp(25px, 5vw, 55px);
+}
+
+.concept-page h2,
+.predict-page h2 {
+  max-width: 900px;
+
+  margin: 7px 0 35px;
+
+  font-size: clamp(27px, 4vw, 46px);
+  line-height: 1.05;
+
+  letter-spacing: -0.04em;
+}
+
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.concept-grid article {
+  padding: 23px;
+
+  border: 1px solid #304354;
+  border-radius: 14px;
+
+  background: #0d1721;
+}
+
+.concept-grid b {
+  color: var(--accent);
+}
+
+.concept-grid h3 {
+  margin: 13px 0 8px;
+
+  font-size: 19px;
+}
+
+.concept-grid p {
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.equation-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  margin-top: 15px;
+}
+
+.equation-row div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+
+  padding: 17px;
+
+  border: 1px solid #304354;
+  border-radius: 12px;
+
+  background: #101c27;
+}
+
+.equation-row span {
+  color: var(--muted);
+}
+
+.equation-row strong {
+  color: white;
+}
+
+/* ---------- PREDICT ---------- */
+
+.prediction-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.prediction-options button {
+  min-height: 62px;
+
+  padding: 0 28px;
+
+  border: 1px solid #3b4e60;
+  border-radius: 14px;
+
+  color: white;
+  background: #101b26;
+
+  font-size: 17px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.prediction-options button:hover {
+  background: #172633;
+}
+
+.prediction-options button.correct {
+  border-color: #48caff;
+  background: #11394c;
+}
+
+.prediction-hint {
+  margin-top: 30px;
+
+  color: var(--muted);
+
+  font-size: 15px;
+}
+
+.prediction-hint strong {
+  color: white;
+}
+
+/* ---------- FOOTER ---------- */
+
+.wave-footer {
+  display: flex;
+  justify-content: space-between;
+
+  padding: 16px 2px 0;
+
+  color: #8b9cac;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 1050px) {
+  .experiment-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .experiment-sidebar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .wave-page {
+    padding: 16px;
+  }
+
+  .experiment-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .source-column {
+    display: none;
+  }
+
+  .screen-area {
+    display: none;
+  }
+
+  .controls,
+  .concept-grid,
+  .equation-row,
+  .experiment-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .wave-nav {
+    width: 100%;
+  }
+
+  .wave-nav button {
+    flex: 1;
+    padding: 0 10px;
+  }
+
+  .wave-footer {
+    display: none;
+  }
+}

@@ -1,0 +1,149 @@
+/* NAVBAR */
+
+.navbar {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  z-index: 100;
+
+  width: min(1100px, 92%);
+  padding: .65rem .7rem;
+
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  transform: translate(-50%, -150%);
+  opacity: 0;
+  pointer-events: none;
+
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+
+  background: color-mix(
+    in srgb,
+    var(--surface) 82%,
+    transparent
+  );
+
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+
+  box-shadow: 0 15px 50px var(--outer-shadow);
+
+  transition:
+    transform .5s ease,
+    opacity .35s ease;
+  
+  background:
+  url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%221.50%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%20opacity%3D%220.35%22%2F%3E%3C%2Fsvg%3E"),
+  linear-gradient(141deg, #3e678701, #5a8ab901);
+
+
+  /* VISIBLE */
+
+  &[data-visible="true"] {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+
+  /* LOGO */
+
+  & > .navbar-logo {
+    margin-right: auto;
+
+    color: var(--light-primary);
+    font-weight: 800;
+    letter-spacing: -.03em;
+    text-decoration: none;
+
+    transition: .2s;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+
+  /* LINKS */
+
+  & > .navbar-links {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+
+    & > a {
+      padding: .55rem .75rem;
+
+      border-radius: .65rem;
+
+      color: var(--secondary);
+      font-size: .8rem;
+      text-decoration: none;
+
+      transition: .2s;
+
+      &:hover {
+        color: var(--primary);
+        background: var(--elevated-surface);
+      }
+
+      &.active {
+        color: var(--primary);
+        background: var(--elevated-surface);
+      }
+    }
+  }
+
+
+  /* GITHUB */
+
+  & > .navbar-github {
+    padding: .55rem .75rem;
+
+    border: 1px solid var(--border);
+    border-radius: .65rem;
+
+    color: var(--secondary);
+    font-size: .8rem;
+    text-decoration: none;
+
+    transition: .2s;
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--elevated-surface);
+    }
+  }
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+
+  .navbar {
+    width: 90%;
+
+
+    /* LINKS */
+
+    & > .navbar-links {
+
+      & > a:nth-child(1),
+      & > a:nth-child(4) {
+        display: none;
+      }
+    }
+
+
+    /* GITHUB */
+
+    & > .navbar-github {
+      display: none;
+    }
+  }
+}

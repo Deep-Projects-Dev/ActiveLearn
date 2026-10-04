@@ -1,0 +1,459 @@
+.school-home {
+  --bg: #05080d;
+  --panel: #0b1119;
+  --panel-hover: #101a24;
+  --border: #293947;
+
+  --text: #ffffff;
+  --muted: #c4d0da;
+  --subtle: #8fa1b0;
+
+  --cyan: #45ceff;
+  --green: #78f0a0;
+  --gold: #ffc65a;
+
+  min-height: 100vh;
+  padding: 30px;
+
+  color: var(--text);
+
+  background:
+    radial-gradient(
+      circle at 75% 5%,
+      #172a3c 0,
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 10% 90%,
+      #10202d 0,
+      transparent 30%
+    ),
+    var(--bg);
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* HEADER */
+
+.school-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+
+  max-width: 1400px;
+  margin: 0 auto 45px;
+}
+
+.school-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.school-mark {
+  display: grid;
+  place-items: center;
+
+  width: 48px;
+  height: 48px;
+
+  border: 1px solid #3b5669;
+  border-radius: 13px;
+
+  color: var(--cyan);
+  background: #0d1923;
+
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.school-brand span,
+.school-meta span,
+.hero-kicker,
+.section-heading span {
+  display: block;
+
+  color: var(--cyan);
+
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.school-brand h1 {
+  margin: 3px 0 0;
+
+  font-size: 21px;
+  letter-spacing: -.025em;
+}
+
+.school-meta {
+  text-align: right;
+}
+
+.school-meta strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+/* HERO */
+
+.school-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 40px;
+
+  max-width: 1400px;
+
+  margin: 0 auto 60px;
+  padding: 20px 10px;
+}
+
+.school-hero h2 {
+  margin: 8px 0 15px;
+
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: .95;
+
+  letter-spacing: -.055em;
+}
+
+.school-hero p {
+  max-width: 550px;
+
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: clamp(15px, 1.5vw, 19px);
+  line-height: 1.5;
+}
+
+/* HERO VISUAL */
+
+.hero-orbit {
+  position: relative;
+
+  width: 260px;
+  height: 260px;
+
+  flex: 0 0 auto;
+}
+
+.orbit {
+  position: absolute;
+
+  inset: 50%;
+
+  border: 1px solid #294253;
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%) rotate(-20deg);
+}
+
+.orbit-one {
+  width: 230px;
+  height: 120px;
+}
+
+.orbit-two {
+  width: 230px;
+  height: 120px;
+
+  transform:
+    translate(-50%, -50%)
+    rotate(65deg);
+}
+
+.hero-symbol {
+  position: absolute;
+
+  inset: 50%;
+
+  display: grid;
+  place-items: center;
+
+  width: 80px;
+  height: 80px;
+
+  border: 1px solid #426176;
+  border-radius: 50%;
+
+  color: white;
+  background: #0d1a25;
+
+  font-size: 38px;
+  font-weight: 500;
+
+  transform: translate(-50%, -50%);
+}
+
+.orbit-dot {
+  position: absolute;
+
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+
+  box-shadow: 0 0 16px currentColor;
+}
+
+.dot-one {
+  top: 53px;
+  right: 23px;
+
+  color: var(--cyan);
+  background: var(--cyan);
+}
+
+.dot-two {
+  bottom: 54px;
+  left: 24px;
+
+  color: var(--green);
+  background: var(--green);
+}
+
+/* LESSON SECTION */
+
+.lesson-section {
+  max-width: 1400px;
+
+  margin: 0 auto;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+
+  margin-bottom: 15px;
+}
+
+.section-heading h3 {
+  margin: 5px 0 0;
+
+  font-size: 25px;
+  letter-spacing: -.03em;
+}
+
+.section-heading small {
+  color: var(--subtle);
+
+  font-weight: 700;
+}
+
+/* LESSON CARDS */
+
+.lesson-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 15px;
+}
+
+.lesson-card {
+  position: relative;
+
+  min-height: 260px;
+
+  padding: 24px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  color: var(--text);
+  background: var(--panel);
+
+  text-decoration: none;
+
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.lesson-card:hover {
+  transform: translateY(-4px);
+
+  border-color: #466173;
+
+  background: var(--panel-hover);
+}
+
+.lesson-card:active {
+  transform: translateY(-1px);
+}
+
+.lesson-icon {
+  display: grid;
+  place-items: center;
+
+  width: 52px;
+  height: 52px;
+
+  margin-bottom: 35px;
+
+  border: 1px solid #385064;
+  border-radius: 14px;
+
+  background: #0e1a24;
+
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.vector-card .lesson-icon {
+  color: var(--cyan);
+}
+
+.optics-card .lesson-icon {
+  color: var(--gold);
+}
+
+.coming-card {
+  opacity: .65;
+}
+
+.coming-card .lesson-icon {
+  color: var(--subtle);
+}
+
+.lesson-content span {
+  color: var(--subtle);
+
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.lesson-content h4 {
+  margin: 7px 0 9px;
+
+  font-size: 25px;
+  letter-spacing: -.035em;
+}
+
+.lesson-content p {
+  max-width: 370px;
+
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.lesson-arrow {
+  position: absolute;
+
+  right: 22px;
+  bottom: 20px;
+
+  color: #758897;
+
+  font-size: 22px;
+}
+
+.lesson-card:hover .lesson-arrow {
+  color: var(--cyan);
+}
+
+/* FOOTER */
+
+.school-footer {
+  display: flex;
+  justify-content: space-between;
+
+  max-width: 1400px;
+
+  margin: 55px auto 0;
+  padding-top: 17px;
+
+  border-top: 1px solid #1d2b36;
+
+  color: #8293a1;
+
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .lesson-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .coming-card {
+    display: none;
+  }
+
+  .hero-orbit {
+    width: 190px;
+    height: 190px;
+  }
+
+  .orbit-one,
+  .orbit-two {
+    width: 170px;
+    height: 90px;
+  }
+}
+
+@media (max-width: 650px) {
+  .school-home {
+    padding: 18px;
+  }
+
+  .school-header {
+    margin-bottom: 25px;
+  }
+
+  .school-meta {
+    display: none;
+  }
+
+  .school-hero {
+    margin-bottom: 35px;
+    padding: 5px 0;
+  }
+
+  .school-hero h2 {
+    font-size: 44px;
+  }
+
+  .hero-orbit {
+    display: none;
+  }
+
+  .lesson-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lesson-card {
+    min-height: 220px;
+  }
+
+  .school-footer {
+    display: none;
+  }
+}
