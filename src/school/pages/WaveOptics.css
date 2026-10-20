@@ -1,789 +1,396 @@
-.wave-page {
-  --bg: #05080d;
-  --panel: #0b1119;
-  --panel-2: #101923;
-  --border: #273544;
-
-  --text: #ffffff;
-  --muted: #c3cfda;
-  --subtle: #91a2b2;
-
-  --accent: #39c8ff;
-  --accent-dark: #123e51;
-
-  min-height: 100%;
-  padding: 28px;
-  color: var(--text);
-  background:
-    radial-gradient(
-      circle at 75% 0%,
-      #142536 0,
-      transparent 38%
-    ),
-    var(--bg);
-
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
-
-/* ---------- HEADER ---------- */
-
-.wave-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
-}
-
-.wave-kicker,
-.panel-heading > div > span,
-.result-card > span,
-.rule-card > span,
-.formula-card > span,
-.concept-page > span,
-.predict-page > span {
-  display: block;
-
-  color: var(--accent);
-
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-}
-
-.wave-header h1 {
-  margin: 3px 0 0;
-
-  font-size: clamp(28px, 3vw, 42px);
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.wave-header p {
-  margin: 7px 0 0;
-
-  color: var(--muted);
-
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.reset-button {
-  min-height: 48px;
-  padding: 0 18px;
-
-  border: 1px solid #3a4d5f;
-  border-radius: 12px;
-
-  color: white;
-  background: #101a25;
-
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.reset-button:hover {
-  background: #172431;
-}
-
-/* ---------- NAV ---------- */
-
-.wave-nav {
-  display: flex;
-  gap: 6px;
-
-  width: fit-content;
-  padding: 5px;
-
-  margin-bottom: 18px;
-
-  border: 1px solid var(--border);
-  border-radius: 14px;
-
-  background: #0b1118;
-}
-
-.wave-nav button {
-  min-height: 48px;
-  padding: 0 24px;
-
-  border: 0;
-  border-radius: 10px;
-
-  color: #c6d1db;
-  background: transparent;
-
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.wave-nav button.active {
-  color: white;
-  background: #1a4257;
-}
-
-/* ---------- MAIN EXPERIMENT ---------- */
-
-.experiment-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
-  gap: 18px;
-}
-
-.experiment-panel,
-.result-card,
-.rule-card,
-.formula-card,
-.concept-page,
-.predict-page {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: rgba(11, 17, 25, 0.96);
-}
-
-.experiment-panel {
-  overflow: hidden;
-}
-
-.panel-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-
-  padding: 22px 24px;
-}
-
-.panel-heading h2 {
-  margin: 5px 0 0;
-
-  font-size: clamp(20px, 2vw, 28px);
-  letter-spacing: -0.03em;
-}
-
-.laser-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  padding: 10px 13px;
-
-  border: 1px solid #344655;
-  border-radius: 10px;
-
-  color: #e9f4fc;
-  background: #0e1721;
-
-  font-weight: 800;
-}
-
-.laser-indicator i {
-  width: 12px;
-  height: 12px;
-
-  border-radius: 50%;
-
-  background: var(--laser);
-
-  box-shadow:
-    0 0 8px var(--laser),
-    0 0 18px var(--laser);
-}
-
-/* ---------- OPTICAL STAGE ---------- */
-
-.experiment-stage {
-  display: grid;
-  grid-template-columns: 100px minmax(300px, 1fr) 145px;
-  align-items: center;
-  gap: 15px;
-
-  min-height: 340px;
-
-  padding: 20px;
-}
-
-.source-column {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-
-  color: var(--muted);
-  text-align: center;
-}
-
-.source-column strong {
-  font-size: 13px;
-}
-
-.source-column small {
-  color: var(--subtle);
-  font-size: 11px;
-}
-
-.laser {
-  width: 42px;
-  height: 42px;
-
-  border-radius: 50%;
-
-  background: var(--laser);
-
-  box-shadow:
-    0 0 15px var(--laser),
-    0 0 35px color-mix(
-      in srgb,
-      var(--laser) 60%,
-      transparent
-    );
-}
-
-/* ---------- WAVE AREA ---------- */
-
-.wave-zone {
+.wave-lab {
   position: relative;
-
-  height: 285px;
-
+  width: 100vw;
+  height: 100dvh;
   overflow: hidden;
-
-  border: 1px solid #344a5d;
-  border-radius: 14px;
-
-  background:
-    linear-gradient(
-      90deg,
-      #09121c,
-      #0d1a27
-    );
+  background: #07090c;
+  color: #f4f6f8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  user-select: none;
 }
 
-.incoming-waves,
-.outgoing-waves {
+.wave-canvas {
   position: absolute;
   inset: 0;
-
-  overflow: hidden;
-}
-
-.incoming-waves span {
-  position: absolute;
-
-  left: -35px;
-  top: 50%;
-
-  width: 105px;
-  height: 105px;
-
-  border: 2px solid;
-
-  border-radius: 50%;
-
-  transform: translateY(-50%);
-
-  opacity: 0.55;
-
-  animation: incoming-wave 3s linear infinite;
-}
-
-.incoming-waves span:nth-child(1) { top: 20%; }
-.incoming-waves span:nth-child(2) { top: 30%; }
-.incoming-waves span:nth-child(3) { top: 40%; }
-.incoming-waves span:nth-child(4) { top: 50%; }
-.incoming-waves span:nth-child(5) { top: 60%; }
-.incoming-waves span:nth-child(6) { top: 70%; }
-.incoming-waves span:nth-child(7) { top: 80%; }
-
-@keyframes incoming-wave {
-  from {
-    transform: translateX(0) translateY(-50%);
-    opacity: 0.45;
-  }
-
-  to {
-    transform: translateX(250px) translateY(-50%);
-    opacity: 0;
-  }
-}
-
-/* ---------- DOUBLE SLIT ---------- */
-
-.double-slit {
-  position: absolute;
-
-  top: 0;
-  right: 30%;
-
-  width: 14px;
+  width: 100%;
   height: 100%;
-
-  background: #8193a2;
-
-  box-shadow:
-    0 0 0 1px #b1bfca;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
 }
 
-.slit-gap {
+.wave-header {
   position: absolute;
-
-  left: -1px;
-
-  width: 16px;
-  height: 44px;
-
-  background: #09121c;
+  inset: 0 0 auto;
+  z-index: 20;
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 240px 1fr auto;
+  align-items: center;
+  gap: 22px;
+  padding: 13px 18px;
+  background: linear-gradient(to bottom, rgba(7,9,12,.98), rgba(7,9,12,.84), transparent);
+  pointer-events: none;
 }
 
-.slit-gap:first-child {
-  top: 88px;
+.wave-heading,
+.wave-modes,
+.wave-header-actions {
+  pointer-events: auto;
 }
 
-.slit-gap:last-child {
-  top: 153px;
-}
-
-/* ---------- OUTGOING WAVES ---------- */
-
-.outgoing-waves {
-  left: 68%;
-}
-
-.outgoing-waves span {
-  position: absolute;
-
-  left: 0;
-  top: 50%;
-
-  width: 90px;
-  height: 90px;
-
-  border: 2px solid;
-
-  border-radius: 50%;
-
-  opacity: 0;
-
-  transform: translateY(-50%);
-
-  animation: outgoing-wave 3s linear infinite;
-}
-
-@keyframes outgoing-wave {
-  from {
-    transform: scale(0.2) translateY(-50%);
-    opacity: 0.6;
-  }
-
-  to {
-    transform: scale(3.4) translateY(-50%);
-    opacity: 0;
-  }
-}
-
-/* ---------- SCREEN ---------- */
-
-.screen-area {
-  height: 285px;
-
-  padding: 10px;
-
-  border-radius: 10px;
-
-  color: #15202b;
-  background: #f4f7f9;
-
-  text-align: center;
-}
-
-.screen-label {
-  color: #596977;
-
+.wave-heading span,
+.rail-title span,
+.observation-kicker,
+.teacher-cue span,
+.wave-formula span {
+  display: block;
+  color: rgba(255,255,255,.38);
   font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
 }
 
-.fringe-screen {
+.wave-heading h1 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.wave-modes {
   display: flex;
   justify-content: center;
-  align-items: stretch;
-  gap: var(--fringe-space);
-
-  height: 225px;
-
-  padding: 10px 4px;
+  gap: 5px;
 }
 
-.fringe-screen i {
-  width: 5px;
-
-  border-radius: 5px;
-
-  background: #263746;
+.wave-modes button {
+  min-width: 150px;
+  min-height: 48px;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255,255,255,.035);
+  color: rgba(255,255,255,.48);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
 }
 
-.fringe-screen i:nth-child(odd) {
-  background: #f4f7f9;
+.wave-modes button:hover,
+.wave-modes button.active {
+  background: rgba(255,255,255,.085);
+  border-color: rgba(255,255,255,.10);
+  color: #fff;
 }
 
-.fringe-screen i.central-fringe {
-  background: var(--fringe-colour);
-
-  box-shadow:
-    0 0 8px var(--fringe-colour),
-    0 0 20px color-mix(
-      in srgb,
-      var(--fringe-colour) 55%,
-      transparent
-    );
+.wave-modes strong,
+.wave-modes small {
+  display: block;
 }
 
-.screen-area small {
-  color: #566877;
-  font-weight: 700;
+.wave-modes strong {
+  font-size: 10px;
+  letter-spacing: .09em;
 }
 
-/* ---------- CONTROLS ---------- */
+.wave-modes small {
+  margin-top: 4px;
+  color: rgba(255,255,255,.37);
+  font-size: 10px;
+}
+
+.wave-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.wave-header-actions button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.68);
+  cursor: pointer;
+  font: inherit;
+  font-size: 17px;
+}
+
+.wave-header-actions button:hover,
+.wave-header-actions button.active {
+  background: rgba(255,255,255,.10);
+  color: #fff;
+}
+
+.wave-control-rail {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  z-index: 20;
+  width: 290px;
+  transform: translateY(-50%);
+  padding: 17px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: rgba(10,12,16,.84);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
+
+.rail-title {
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.rail-title strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  letter-spacing: -.015em;
+}
 
 .controls {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-
-  padding: 18px 22px 22px;
-
-  border-top: 1px solid #263746;
-}
-
-.wave-slider {
-  display: block;
-
-  padding: 14px;
-
-  border: 1px solid #314353;
-  border-radius: 12px;
-
-  background: #0e1721;
-}
-
-.wave-slider > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.wave-slider span {
-  color: #d1dce5;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.wave-slider strong {
-  color: white;
-
-  font-size: 13px;
-}
-
-.wave-slider input {
-  width: 100%;
-
-  margin-top: 15px;
-
-  accent-color: var(--accent);
-
-  min-height: 30px;
-
-  cursor: pointer;
-}
-
-/* ---------- SIDEBAR ---------- */
-
-.experiment-sidebar {
-  display: grid;
-  gap: 18px;
-  align-content: start;
-}
-
-.result-card,
-.rule-card {
-  padding: 22px;
-}
-
-.result-card > strong {
-  display: block;
-
-  margin: 8px 0;
-
-  font-size: 46px;
-  line-height: 1;
-
-  letter-spacing: -0.05em;
-}
-
-.result-card > strong small {
-  color: var(--muted);
-  font-size: 18px;
-}
-
-.result-card p {
-  margin: 10px 0 0;
-
-  color: var(--muted);
-
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.rule-card h3 {
-  margin: 7px 0 12px;
-
-  font-size: 19px;
-}
-
-.rule-card ul {
-  display: grid;
-  gap: 10px;
-
-  padding-left: 18px;
-  margin: 0;
-
-  color: #e4edf4;
-
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.formula-card {
-  width: 100%;
-
-  padding: 20px;
-
-  color: white;
-
-  text-align: left;
-
-  cursor: pointer;
-}
-
-.formula-card strong {
-  display: block;
-
-  margin-top: 9px;
-
-  font-size: 25px;
-}
-
-.formula-card em {
-  display: block;
-
-  margin-top: 12px;
-
-  color: var(--accent);
-
-  font-size: 19px;
-  font-style: normal;
-  font-weight: 800;
-}
-
-/* ---------- CONCEPT ---------- */
-
-.concept-page,
-.predict-page {
-  padding: clamp(25px, 5vw, 55px);
-}
-
-.concept-page h2,
-.predict-page h2 {
-  max-width: 900px;
-
-  margin: 7px 0 35px;
-
-  font-size: clamp(27px, 4vw, 46px);
-  line-height: 1.05;
-
-  letter-spacing: -0.04em;
-}
-
-.concept-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 15px;
-}
-
-.concept-grid article {
-  padding: 23px;
-
-  border: 1px solid #304354;
-  border-radius: 14px;
-
-  background: #0d1721;
-}
-
-.concept-grid b {
-  color: var(--accent);
-}
-
-.concept-grid h3 {
-  margin: 13px 0 8px;
-
-  font-size: 19px;
-}
-
-.concept-grid p {
-  color: var(--muted);
-
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.equation-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-
   margin-top: 15px;
 }
 
-.equation-row div {
+.wave-variable {
+  display: block;
+}
+
+.wave-variable > div {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 15px;
-
-  padding: 17px;
-
-  border: 1px solid #304354;
-  border-radius: 12px;
-
-  background: #101c27;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
-.equation-row span {
-  color: var(--muted);
+.wave-variable span {
+  color: rgba(255,255,255,.57);
+  font-size: 11px;
 }
 
-.equation-row strong {
-  color: white;
+.wave-variable strong {
+  color: #fff;
+  font-size: 13px;
 }
 
-/* ---------- PREDICT ---------- */
-
-.prediction-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+.wave-variable input {
+  width: 100%;
+  accent-color: #d9e1e8;
 }
 
-.prediction-options button {
-  min-height: 62px;
-
-  padding: 0 28px;
-
-  border: 1px solid #3b4e60;
-  border-radius: 14px;
-
-  color: white;
-  background: #101b26;
-
-  font-size: 17px;
-  font-weight: 800;
-
-  cursor: pointer;
+.teacher-cue {
+  margin-top: 1px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(255,255,255,.07);
 }
 
-.prediction-options button:hover {
-  background: #172633;
+.teacher-cue p {
+  margin: 6px 0 0;
+  color: rgba(255,255,255,.60);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
-.prediction-options button.correct {
-  border-color: #48caff;
-  background: #11394c;
+.wave-observation {
+  position: absolute;
+  left: 325px;
+  bottom: 54px;
+  z-index: 20;
+  width: min(410px, calc(100vw - 670px));
+  padding: 13px 15px;
+  border-left: 2px solid rgba(255,255,255,.26);
+  background: linear-gradient(to right, rgba(8,10,14,.84), rgba(8,10,14,.50), transparent);
+  pointer-events: none;
 }
 
-.prediction-hint {
-  margin-top: 30px;
+.wave-observation strong,
+.wave-observation p {
+  display: block;
+}
 
-  color: var(--muted);
-
+.wave-observation strong {
+  margin-top: 5px;
   font-size: 15px;
+  line-height: 1.35;
 }
 
-.prediction-hint strong {
-  color: white;
+.wave-observation p {
+  margin: 5px 0 0;
+  max-width: 390px;
+  color: rgba(255,255,255,.48);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
-/* ---------- FOOTER ---------- */
+.wave-measurements {
+  position: absolute;
+  top: 102px;
+  right: 18px;
+  z-index: 20;
+  display: flex;
+  gap: 7px;
+  pointer-events: none;
+}
+
+.wave-measurement {
+  min-width: 106px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(8,10,14,.70);
+  backdrop-filter: blur(10px);
+}
+
+.wave-measurement span,
+.wave-measurement strong {
+  display: block;
+}
+
+.wave-measurement span {
+  color: rgba(255,255,255,.34);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+
+.wave-measurement strong {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.wave-formula {
+  position: absolute;
+  right: 18px;
+  bottom: 52px;
+  z-index: 20;
+  width: 250px;
+  padding: 15px 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 15px;
+  background: rgba(8,10,14,.86);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.wave-formula strong {
+  display: block;
+  margin-top: 7px;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  font-weight: 500;
+}
+
+.wave-formula p {
+  margin: 7px 0 0;
+  color: rgba(255,255,255,.43);
+  font-size: 10px;
+  line-height: 1.4;
+}
 
 .wave-footer {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 20;
+  height: 32px;
   display: flex;
-  justify-content: space-between;
-
-  padding: 16px 2px 0;
-
-  color: #8b9cac;
-
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  background: rgba(6,8,11,.80);
+  color: rgba(255,255,255,.26);
+  font-size: 9px;
+  pointer-events: none;
 }
 
-/* ---------- RESPONSIVE ---------- */
-
-@media (max-width: 1050px) {
-  .experiment-layout {
-    grid-template-columns: 1fr;
+@media (max-width: 1000px) {
+  .wave-header {
+    grid-template-columns: 1fr auto;
   }
 
-  .experiment-sidebar {
-    grid-template-columns: repeat(3, 1fr);
+  .wave-modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .wave-control-rail {
+    width: 260px;
+    top: auto;
+    bottom: 48px;
+    transform: none;
+  }
+
+  .wave-observation {
+    left: 295px;
+    width: min(330px, calc(100vw - 585px));
+  }
+
+  .wave-measurements {
+    top: 155px;
+    right: 12px;
+    flex-wrap: wrap;
+    max-width: 310px;
+    justify-content: flex-end;
   }
 }
 
 @media (max-width: 760px) {
-  .wave-page {
-    padding: 16px;
+  .wave-header {
+    padding: 10px 12px;
   }
 
-  .experiment-stage {
-    grid-template-columns: 1fr;
+  .wave-heading h1 {
+    font-size: 18px;
   }
 
-  .source-column {
+  .wave-modes button {
+    min-width: 0;
+    width: 30vw;
+    padding-inline: 8px;
+  }
+
+  .wave-modes small {
     display: none;
   }
 
-  .screen-area {
+  .wave-control-rail {
+    left: 10px;
+    right: 10px;
+    bottom: 44px;
+    width: auto;
+  }
+
+  .controls {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: end;
+  }
+
+  .teacher-cue {
     display: none;
   }
 
-  .controls,
-  .concept-grid,
-  .equation-row,
-  .experiment-sidebar {
-    grid-template-columns: 1fr;
+  .wave-observation {
+    display: none;
   }
 
-  .panel-heading {
-    align-items: flex-start;
-    flex-direction: column;
+  .wave-measurements {
+    display: none;
   }
 
-  .wave-nav {
-    width: 100%;
-  }
-
-  .wave-nav button {
-    flex: 1;
-    padding: 0 10px;
+  .wave-formula {
+    left: 10px;
+    right: 10px;
+    bottom: 190px;
+    width: auto;
   }
 
   .wave-footer {
-    display: none;
+    font-size: 8px;
   }
 }
